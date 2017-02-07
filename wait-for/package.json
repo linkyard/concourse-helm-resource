@@ -1,0 +1,14 @@
+{
+  "name": "wait-for-helm-deployment",
+  "version": "1.0.0",
+  "description": "Waits until a helm deployment is ready.",
+  "main": "index.js",
+  "author": "Mario Siegenthaler <mario.siegenthaler@linkyard.ch>",
+  "license": "Apache 2",
+  "dependencies": {
+    "@types/es6-promise": "^0.0.32",
+    "@types/node": "^7.0.5",
+    "kubernetes-client": "^3.2.0",
+    "lodash": "^4.17.4"
+  }
+}
