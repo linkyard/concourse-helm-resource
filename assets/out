@@ -69,9 +69,7 @@ helm_install() {
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  set -x
   $helm_cmd $source/$chart | tee $logfile
-  set +x
 
   # Find the name of the release
   name=`cat $logfile | grep "NAME:" | awk '{print $2}'`
@@ -114,7 +112,6 @@ helm_delete() {
 }
 
 wait_ready() {
-  echo $wait_until_ready
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
     echo "Waiting until deployment of $name is ready..."
     node /opt/wait-for-helm-deployment/src/index.js $name $wait_until_ready

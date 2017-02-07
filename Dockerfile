@@ -1,4 +1,4 @@
-FROM linkyard/docker-helm:local
+FROM linkyard/docker-helm:latest
 MAINTAINER Mario Siegenthaler <mario.siegenthaler@linkyard.ch>
 
 RUN apk add --update --upgrade --no-cache jq bash nodejs curl
@@ -12,8 +12,6 @@ RUN yarn global add typescript
 
 ADD wait-for-helm-deployment /opt/wait-for-helm-deployment
 RUN cd /opt/wait-for-helm-deployment && \
-    node --version && \
-    tsc --version && \
     yarn
 
 ADD assets /opt/resource
