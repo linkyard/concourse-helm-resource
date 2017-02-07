@@ -2,7 +2,7 @@
   "name": "wait-for-helm-deployment",
   "version": "1.0.0",
   "description": "Waits until a helm deployment is ready.",
-  "main": "index.js",
+  "main": "src/index.js",
   "author": "Mario Siegenthaler <mario.siegenthaler@linkyard.ch>",
   "license": "Apache2",
   "dependencies": {
