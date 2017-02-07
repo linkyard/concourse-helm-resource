@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+source /opt/resource/common.sh
+
+# Read inputs
+source=$1
+payload=$(mktemp $TMPDIR/helm-resource-request.XXXXXX)
+cat > $payload <&0
+
+# Prepare
+setup_resource $payload
+
+#TODO
+set -x
+
+chart=$(jq -r '.params.chart // ""' < $payload)
+name_file=$(jq -r '.params.name // ""' < $payload)
+values=$(jq -r '.params.values // ""' < $payload)
+wait_until_ready=$(jq -r '.params.wait_until_ready // false' < $payload)
+if [ -z "$chart" ]; then
+  echo "invalid payload (missing chart)"
+  exit 1
+fi
+if [ -n "$name_file" ]; then
+  name=`cat $name_file`
+else
+  name=""
+fi
+
+cd $source
+
+
+kubectl get po
