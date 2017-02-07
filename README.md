@@ -40,9 +40,6 @@ on the cluster.
 * `values`: *Optional.* File containing the values.yaml for the deployment.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
-* `wait_until_ready`: *Optional.* Set to `true` if helm should wait until all the resources om
-    the chart are ready. (Default: `false`).
-
 
 
 ## Example
