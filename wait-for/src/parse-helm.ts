@@ -1,16 +1,4 @@
-import {execFile} from 'child_process'
 import {takeWhile, drop, dropWhile, fromPairs} from 'lodash'
-
-function readHelmStatus(release) {
-  return new Promise<string>((fulfill, reject) => {
-    execFile('helm', ['status', release], function(err, status, stderr) {
-      if (err) {
-        return reject(`Error getting status from helm: ${err}\n${stderr}`)
-      }
-      fulfill(status)
-    })
-  })
-}
 
 function group<a>(lines: a[], matcher: (item: a) => boolean): a[][] {
   if (lines.length === 0) return []
@@ -23,7 +11,7 @@ function group<a>(lines: a[], matcher: (item: a) => boolean): a[][] {
   return [[lines[0], ...head], ...group(tail, matcher)]
 }
 
-function parseHelmStatus(status: string) {
+export function parseHelmStatus(status: string) {
   const lines = status.split('\n')
   const resourceInfos = group(lines, (line: string) => line.length > 0)
     .map(lines => lines.filter(line => line.trim().length > 0))
@@ -35,8 +23,3 @@ function parseHelmStatus(status: string) {
   })
   return fromPairs(resources)
 }
-
-const release = process.argv[2]
-readHelmStatus(release).
-  then(parseHelmStatus).
-  then(a => console.log(JSON.stringify(a, null, 2)))
