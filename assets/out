@@ -24,6 +24,7 @@ values=$(jq -r '.params.values // ""' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // false' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
+delete=$(jq -r '.params.delete // "false"' < $payload)
 if [ -z "$chart" ]; then
   echo "invalid payload (missing chart)"
   exit 1
@@ -97,18 +98,40 @@ helm_upgrade() {
   set +x
 }
 
+helm_delete() {
+  if [ -z "$name" ]; then
+    echo "invalid payload (missing name if delete=true)"
+    exit 1
+  fi
+  echo "Deleting the release $name..."
+  helm_cmd="helm delete"
+  if [ "$debug" = true ]; then
+    helm_cmd="$helm_cmd --dry-run --debug"
+  fi
+  logfile="/tmp/log"
+  mkdir -p /tmp
+  set -x
+  $helm_cmd $name| tee $logfile
+  set +x
+}
 
 
-if [ "$(is_deployed $name)" = true ]; then
-  echo "Upgrading $name"
-  helm_upgrade
+if [ "$delete" = true ]; then
+  helm_delete
+  result="$(jq -n "{version:{release:\"$name\", deleted: true}}")"
+  echo "$result" | jq -s add  >&3
 else
-  echo "Installing $name"
-  helm_install
+  if [ "$(is_deployed $name)" = true ]; then
+    echo "Upgrading $name"
+    helm_upgrade
+  else
+    echo "Installing $name"
+    helm_install
+  fi
+
+  revision=$(current_revision)
+  echo "Deployed revision $revision of $name"
+  result="$(jq -n "{version:{release:\"$name\", revision:\"$revision\"}}")"
+  echo "$result" | jq -s add  >&3
 fi
 
-revision=$(current_revision)
-echo "Deployed revision $revision of $name"
-
-result="$(jq -n "{version:{release:\"$name\", revision:\"$revision\"}}")"
-echo "$result" | jq -s add  >&3
