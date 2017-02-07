@@ -36,6 +36,7 @@ setup_kubernetes() {
 
 setup_helm() {
   helm init -c > /dev/nulll
+  helm version
 }
 
 setup_resource() {
