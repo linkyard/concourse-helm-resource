@@ -1,5 +1,7 @@
 import {execFile} from 'child_process'
 import {parseHelmStatus, Resource} from './parse-helm'
+import {clearLine} from 'readline'
+import {moveCursor} from 'readline'
 
 const interval = 1000 //ms
 const defaultTimeout = 300000 //ms
@@ -18,12 +20,19 @@ function readHelmStatus(release) {
 const t0 = Date.now()
 let timeoutExpired = false
 
+let deleteLines = 0
+
 function checkReady(status: Resource[]) {
   const notReady = status.filter(resource => !resource.isReady)
     .map(resource => `- ${resource.name} (${resource.type})`)
   if (notReady.length > 0) {
     const seconds = Math.round((Date.now() - t0) / 1000)
-    console.log(`The following resources are not ready yet (after ${seconds}s):\n${notReady.join('\n')}`)
+    for (let i = 0; i<deleteLines; i++) {
+      moveCursor(process.stdout, 0, -1)
+      clearLine(process.stdout, 0)
+    }
+    process.stdout.write(`The following resources are not ready yet (after ${seconds}s):\n${notReady.join('\n')}\n`)
+    deleteLines = notReady.length + 1
     return false
   }
   return true

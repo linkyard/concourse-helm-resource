@@ -4,7 +4,7 @@
   "description": "Waits until a helm deployment is ready.",
   "main": "src/index.js",
   "author": "Mario Siegenthaler <mario.siegenthaler@linkyard.ch>",
-  "license": "Apache2",
+  "license": "Apache-2.0",
   "dependencies": {
     "@types/es6-promise": "^0.0.32",
     "@types/mocha": "^2.2.39",
@@ -17,6 +17,7 @@
   },
   "scripts": {
     "compile": "tsc --noUnusedLocals",
-    "test": "mocha"
+    "test": "mocha",
+    "prepublish": "npm run compile && npm run test"
   }
 }
