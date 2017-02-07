@@ -34,7 +34,23 @@ else
   name=""
 fi
 
-## TODO Upgrade if exists...
+
+is_deployed() {
+  if [ -n "$1" ]; then
+    set +e
+    helm status $1 | grep "STATUS: DEPLOYED" > /dev/null
+    if [ $? = 0 ]; then
+      # exists and is deployed
+      echo true
+    else
+      # not deployed at the moment
+      echo false
+    fi
+    set -e
+  else
+    echo false
+  fi
+}
 
 helm_install() {
   helm_cmd="helm install"
@@ -62,12 +78,35 @@ helm_install() {
 
 # Find the current revision of a helm release
 current_revision() {
-  revision=`helm history $name | head -n 2 | tail -n 1 | awk '{print $1}'`
+  revision=`helm history $name | grep "DEPLOYED" | awk '{print $1}'`
   echo $revision
 }
 
-# helm install
-helm_install
+helm_upgrade() {
+  helm_cmd="helm upgrade $name"
+  if [ -n "$values" ]; then
+    helm_cmd="$helm_cmd -f $values"
+  fi
+  if [ "$debug" = true ]; then
+    helm_cmd="$helm_cmd --dry-run --debug"
+  fi
+  logfile="/tmp/log"
+  mkdir -p /tmp
+  set -x
+  $helm_cmd $source/$chart | tee $logfile
+  set +x
+}
+
+
+
+if [ "$(is_deployed $name)" = true ]; then
+  echo "Upgrading $name"
+  helm_upgrade
+else
+  echo "Installing $name"
+  helm_install
+fi
+
 revision=$(current_revision)
 echo "Deployed revision $revision of $name"
 
