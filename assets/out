@@ -21,7 +21,7 @@ echo "Resource setup successful."
 chart=$(jq -r '.params.chart // ""' < $payload)
 name_file=$(jq -r '.params.name // ""' < $payload)
 values=$(jq -r '.params.values // ""' < $payload)
-wait_until_ready=$(jq -r '.params.wait_until_ready // false' < $payload)
+wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
@@ -110,9 +110,15 @@ helm_delete() {
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  set -x
   $helm_cmd $name| tee $logfile
-  set +x
+}
+
+wait_ready() {
+  echo $wait_until_ready
+  if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
+    echo "Waiting until deployment of $name is ready..."
+    node /opt/wait-for-helm-deployment/src/index.js $name $wait_until_ready
+  fi
 }
 
 
@@ -131,6 +137,7 @@ else
 
   revision=$(current_revision)
   echo "Deployed revision $revision of $name"
+  wait_ready
   result="$(jq -n "{version:{release:\"$name\", revision:\"$revision\"}}")"
   echo "$result" | jq -s add  >&3
 fi

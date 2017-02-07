@@ -1,1 +1,4 @@
 test
+wait-for-helm-deployment/node_modules
+wait-for-helm-deployment/**/*.js
+wait-for-helm-deployment/**/*.js.map

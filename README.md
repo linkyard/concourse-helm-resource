@@ -28,7 +28,6 @@ resource_types:
 
 ### `in`: Not Supported
 
-
 ### `out`: Deploy the helm chart
 
 Deploys a Helm chart onto the Kubernetes cluster. Tiller must be already installed
@@ -40,6 +39,9 @@ on the cluster.
 * `values`: *Optional.* File containing the values.yaml for the deployment.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
+* `wait_until_ready`: *Optional.* Set to the number of seconds it should wait until all the resources in
+    the chart are ready. (Default: `0` which means don't wait).
+
 
 
 ## Example
