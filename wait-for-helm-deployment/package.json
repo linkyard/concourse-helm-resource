@@ -17,7 +17,7 @@
   },
   "scripts": {
     "compile": "tsc --noUnusedLocals",
-    "test": "mocha",
+    "test": "tsc test/*.ts && mocha",
     "prepublish": "npm run compile && npm run test"
   }
 }
