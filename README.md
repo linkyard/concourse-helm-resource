@@ -10,7 +10,7 @@ resource_types:
 - name: helm
   type: docker-image
   source:
-    repository: linkyard/helm-resource
+    repository: linkyard/concourse-helm-resource
 ```
 
 
