@@ -19,7 +19,7 @@ echo "Resource setup successful."
 
 # Parse parameters
 chart=$(jq -r '.params.chart // ""' < $payload)
-name_file=$(jq -r '.params.name // ""' < $payload)
+release_file=$(jq -r '.params.release // ""' < $payload)
 values=$(jq -r '.params.values // ""' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
@@ -29,10 +29,10 @@ if [ -z "$chart" ]; then
   echo "invalid payload (missing chart)"
   exit 1
 fi
-if [ -n "$name_file" ]; then
-  name=`cat $source/$name_file`
+if [ -n "$release_file" ]; then
+  release=`cat $source/$release_file`
 else
-  name=""
+  release=$(jq -r '.source.release // ""' < $payload)
 fi
 
 
@@ -55,8 +55,8 @@ is_deployed() {
 
 helm_install() {
   helm_cmd="helm install"
-  if [ -n "$name" ]; then
-    helm_cmd="$helm_cmd -n $name"
+  if [ -n "$release" ]; then
+    helm_cmd="$helm_cmd -n $release"
   fi
   if [ -n "$values" ]; then
     helm_cmd="$helm_cmd -f $values"
@@ -72,17 +72,17 @@ helm_install() {
   $helm_cmd $source/$chart | tee $logfile
 
   # Find the name of the release
-  name=`cat $logfile | grep "NAME:" | awk '{print $2}'`
+  release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
 }
 
 # Find the current revision of a helm release
 current_revision() {
-  revision=`helm history $name | grep "DEPLOYED" | awk '{print $1}'`
+  revision=`helm history $release | grep "DEPLOYED" | awk '{print $1}'`
   echo $revision
 }
 
 helm_upgrade() {
-  helm_cmd="helm upgrade $name"
+  helm_cmd="helm upgrade $release"
   if [ -n "$values" ]; then
     helm_cmd="$helm_cmd -f $values"
   fi
@@ -97,45 +97,45 @@ helm_upgrade() {
 }
 
 helm_delete() {
-  if [ -z "$name" ]; then
-    echo "invalid payload (missing name if delete=true)"
+  if [ -z "$release" ]; then
+    echo "invalid payload (missing release if delete=true)"
     exit 1
   fi
-  echo "Deleting the release $name..."
+  echo "Deleting the release $release..."
   helm_cmd="helm delete"
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  $helm_cmd $name| tee $logfile
+  $helm_cmd $release| tee $logfile
 }
 
 wait_ready() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
-    echo "Waiting until deployment of $name is ready..."
-    node /opt/wait-for-helm-deployment/src/index.js $name $wait_until_ready
+    echo "Waiting until deployment of $release is ready..."
+    node /opt/wait-for-helm-deployment/src/index.js $release $wait_until_ready
   fi
 }
 
 
 if [ "$delete" = true ]; then
   helm_delete
-  result="$(jq -n "{version:{release:\"$name\", deleted: true}}")"
+  result="$(jq -n "{version:{release:\"$release\", deleted: true}}")"
   echo "$result" | jq -s add  >&3
 else
-  if [ "$(is_deployed $name)" = true ]; then
-    echo "Upgrading $name"
+  if [ "$(is_deployed $release)" = true ]; then
+    echo "Upgrading $release"
     helm_upgrade
   else
-    echo "Installing $name"
+    echo "Installing $release"
     helm_install
   fi
 
   revision=$(current_revision)
-  echo "Deployed revision $revision of $name"
+  echo "Deployed revision $revision of $release"
   wait_ready
-  result="$(jq -n "{version:{release:\"$name\", revision:\"$revision\"}}")"
+  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}}")"
   echo "$result" | jq -s add  >&3
 fi
 
