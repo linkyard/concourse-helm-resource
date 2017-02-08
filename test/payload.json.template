@@ -1,0 +1,16 @@
+{
+  "source": {
+    "cluster_url": "https://my.kubenetes-cluster.test:8443",
+    "cluster_ca": "...",
+    "admin_key": "...",
+    "admin_cert": "..."
+  },
+  "params": {
+    "chart": "nginx-0.1.0.tgz",
+    "name": "name",
+    "replace": "true",
+    "delete": "false",
+    "debug": "false",
+    "wait_until_ready": "10"
+  }
+}
