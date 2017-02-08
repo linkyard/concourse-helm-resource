@@ -7,7 +7,7 @@
   },
   "params": {
     "chart": "nginx-0.1.0.tgz",
-    "name": "name",
+    "release": "name",
     "replace": "true",
     "delete": "false",
     "debug": "false",
