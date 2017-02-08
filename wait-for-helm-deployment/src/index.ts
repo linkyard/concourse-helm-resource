@@ -31,7 +31,7 @@ function checkReady(status: Resource[]) {
       moveCursor(process.stdout, 0, -1)
       clearLine(process.stdout, 0)
     }
-    process.stdout.write(`The following resources are not ready yet (after ${seconds}s):\n${notReady.join('\n')}\n`)
+    process.stdout.write(`The following resources are not ready yet (after ${seconds}s):\n${notReady.sort().join('\n')}\n`)
     deleteLines = notReady.length + 1
     return false
   }

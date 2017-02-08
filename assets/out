@@ -59,7 +59,7 @@ helm_install() {
     helm_cmd="$helm_cmd -n $release"
   fi
   if [ -n "$values" ]; then
-    helm_cmd="$helm_cmd -f $values"
+    helm_cmd="$helm_cmd -f $source/$values"
   fi
   if [ "$replace" = true ]; then
     helm_cmd="$helm_cmd --replace"
@@ -84,7 +84,7 @@ current_revision() {
 helm_upgrade() {
   helm_cmd="helm upgrade $release"
   if [ -n "$values" ]; then
-    helm_cmd="$helm_cmd -f $values"
+    helm_cmd="$helm_cmd -f $source/$values"
   fi
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
