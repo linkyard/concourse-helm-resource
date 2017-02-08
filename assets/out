@@ -121,7 +121,7 @@ wait_ready() {
 
 if [ "$delete" = true ]; then
   helm_delete
-  result="$(jq -n "{version:{release:\"$release\", deleted: \"true\"}}")"
+  result="$(jq -n "{version:{release:\"$release\", deleted: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
   echo "$result" | jq -s add  >&3
 else
   if [ "$(is_deployed $release)" = true ]; then
@@ -135,7 +135,7 @@ else
   revision=$(current_revision)
   echo "Deployed revision $revision of $release"
   wait_ready
-  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}}")"
+  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
 
