@@ -140,4 +140,3 @@ else
   result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
-
