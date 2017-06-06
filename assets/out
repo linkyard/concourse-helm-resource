@@ -69,6 +69,9 @@ helm_install() {
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
+  if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
+    helm_cmd="$helm_cmd --wait --timeout $wait_until_ready"
+  fi
   logfile="/tmp/log"
   mkdir -p /tmp
   $helm_cmd $source/$chart | tee $logfile
@@ -87,6 +90,9 @@ helm_upgrade() {
   helm_cmd="helm upgrade $release"
   if [ -n "$values" ]; then
     helm_cmd="$helm_cmd -f $source/$values"
+  fi
+  if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
+    helm_cmd="$helm_cmd --wait --timeout $wait_until_ready"
   fi
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
@@ -113,10 +119,9 @@ helm_delete() {
   $helm_cmd $release| tee $logfile
 }
 
-wait_ready() {
+wait_ready_notice() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
-    echo "Waiting until deployment of $release is ready..."
-    node /opt/wait-for-helm-deployment/src/index.js $release $wait_until_ready
+    echo "Waiting until deployment of $release is ready... (up to $wait_until_ready seconds)"
   fi
 }
 
@@ -136,7 +141,7 @@ else
 
   revision=$(current_revision)
   echo "Deployed revision $revision of $release"
-  wait_ready
+  wait_ready_notice
   result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
