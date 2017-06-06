@@ -17,10 +17,13 @@ export function parseHelmStatus(status: string): Resource[] {
   const resourceInfos = group(afterHeader, (line: string) => line.length > 0)
     .map(lines => lines.filter(line => line.trim().length > 0))
     .filter(group => group.length > 0 && group[0].indexOf("==>") === 0)
-  const resources = flatMap(resourceInfos, (lines: string[]) => {
-    const type = lines[0].substring('==> '.length)
-    const values = drop(lines, 2).map(line => line.split(/ +/))
-    return values.map(value => parseResource(type, value))
+      const resources = flatMap(resourceInfos, (lines: string[]) => {
+      const type = lines[0].substring('==> '.length)
+      const simpleTypeMatcher = /^.*?\/([^\/]+)$/g
+      const simpleTypeMatches = simpleTypeMatcher.exec(type)
+      const simpleType = simpleTypeMatches ? simpleTypeMatches[1] : type
+      const values = drop(lines, 2).map(line => line.split(/ +/))
+      return values.map(value => parseResource(type, simpleType, value))
   })
   return resources
 }
@@ -28,7 +31,9 @@ export function parseHelmStatus(status: string): Resource[] {
 export interface Resource {
   name: string
   /** Kubernetes API type of this resource (eg v1/Service). */
-    type: string
+  type: string
+  /** Simplified kubernetes API type of this resource (without the prefix, eg Service). */
+  simpleType: string
   /** true if the resource is ready - returns true for things that don't have a state such as Secrets */
   isReady: boolean
 
@@ -41,32 +46,35 @@ export interface Resource {
   volume?: string
 }
 
-function parseResource(type: string, columns: string[]): Resource {
-  switch (type) {
-    case 'batch/Job':
+function parseResource(type: string, simpleType, columns: string[]): Resource {
+  switch (simpleType) {
+    case 'Job':
       //NAME                     DESIRED   SUCCESSFUL   AGE
       const desired = parseInt(columns[1])
       const successful = parseInt(columns[2])
       return {
         type,
+        simpleType,
         name: columns[0],
         desired,
         successful,
         isReady: desired === successful
       }
 
-    case 'v1/PersistentVolumeClaim':
+    case 'PersistentVolumeClaim':
       //NAME             STATUS    VOLUME      CAPACITY   ACCESSMODES   AGE
       return {
         type,
+        simpleType,
         name: columns[0],
         volume: columns[2],
         isReady: columns[1] === 'Bound'
       }
-    case 'extensions/Deployment':
+    case 'Deployment':
       //NAME        DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
       return {
         type,
+        simpleType,
         name: columns[0],
         desired: parseInt(columns[1]),
         current: parseInt(columns[2]),
@@ -77,6 +85,7 @@ function parseResource(type: string, columns: string[]): Resource {
     default:
       return {
         type,
+        simpleType,
         name: columns[0],
         isReady: true
       }

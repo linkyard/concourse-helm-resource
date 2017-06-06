@@ -23,10 +23,13 @@ describe('parse helm status', () => {
     expect(status).to.have.lengthOf(3)
     expect(status[0].name).to.equal('cit-nginx')
     expect(status[0].type).to.equal('v1/ConfigMap')
+    expect(status[0].simpleType).to.equal('ConfigMap')
     expect(status[1].name).to.equal('cit-nginx')
     expect(status[1].type).to.equal('v1/Service')
+    expect(status[1].simpleType).to.equal('Service')
     expect(status[2].name).to.equal('cit-nginx')
     expect(status[2].type).to.equal('extensions/Deployment')
+    expect(status[2].simpleType).to.equal('Deployment')
   })
 
   it('should parse all names and types from example2', () => {
@@ -102,6 +105,7 @@ describe('parse helm status', () => {
 
   function expectDeployment(deployment: Resource, name, desired, current, upToDate, available, ready) {
     expect(deployment.type).to.equal('extensions/Deployment')
+    expect(deployment.simpleType).to.equal('Deployment')
     expect(deployment.name).to.equal(name)
     expect(deployment.desired).to.equal(desired)
     expect(deployment.current).to.equal(current)
@@ -129,6 +133,7 @@ describe('parse helm status', () => {
 
   function expectJob(job: Resource, name, desired, successful, ready) {
     expect(job.type).to.equal('batch/Job')
+    expect(job.simpleType).to.equal('Job')
     expect(job.name).to.equal(name)
     expect(job.desired).to.equal(desired)
     expect(job.successful).to.equal(successful)
