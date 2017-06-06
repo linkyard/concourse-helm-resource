@@ -18,6 +18,6 @@
   "scripts": {
     "compile": "tsc --noUnusedLocals",
     "test": "mocha",
-    "prepublish": "npm run compile && npm run test"
+    "prepublish": "yarn run compile && yarn run test"
   }
 }
