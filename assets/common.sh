@@ -3,6 +3,7 @@ set -e
 
 setup_kubernetes() {
   payload=$1
+  source=$2
   # Setup kubectl
   cluster_url=$(jq -r '.source.cluster_url // ""' < $payload)
   if [ -z "$cluster_url" ]; then
@@ -15,6 +16,7 @@ setup_kubernetes() {
     admin_key=$(jq -r '.source.admin_key // ""' < $payload)
     admin_cert=$(jq -r '.source.admin_cert // ""' < $payload)
     token=$(jq -r '.source.token // ""' < $payload)
+    token_path=$(jq -r '.params.token_path // ""' < $payload)
 
     mkdir -p /root/.kube
 
@@ -22,7 +24,9 @@ setup_kubernetes() {
     echo "$cluster_ca" | base64 -d > $ca_path
     kubectl config set-cluster default --server=$cluster_url --certificate-authority=$ca_path
 
-    if [ ! -z "$token" ]; then
+    if [ -f "$source/$token_path" ]; then
+      kubectl config set-credentials admin --token=$(cat $source/$token_path)
+    elif [ ! -z "$token" ]; then
       kubectl config set-credentials admin --token=$token
     else
       key_path="/root/.kube/key.pem"
@@ -49,7 +53,7 @@ setup_helm() {
 
 setup_resource() {
   echo "Initializing kubectl..."
-  setup_kubernetes $1
+  setup_kubernetes $1 $2
   echo "Initializing helm..."
   setup_helm
 }
