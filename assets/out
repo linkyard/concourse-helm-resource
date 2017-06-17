@@ -36,6 +36,8 @@ else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
 
+chart_full="$source/$chart"
+
 
 is_deployed() {
   if [ -n "$1" ]; then
@@ -71,7 +73,7 @@ helm_install() {
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  $helm_cmd $source/$chart | tee $logfile
+  $helm_cmd $chart_full | tee $logfile
 
   # Find the name of the release
   release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
@@ -94,7 +96,7 @@ helm_upgrade() {
   logfile="/tmp/log"
   mkdir -p /tmp
   set -x
-  $helm_cmd $source/$chart | tee $logfile
+  $helm_cmd $chart_full | tee $logfile
   set +x
 }
 
