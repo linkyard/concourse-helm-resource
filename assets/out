@@ -36,8 +36,13 @@ else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
 
-chart_full="$source/$chart"
-
+if [[ "$chart" == *.tgz ]]; then
+  # it's a file
+  chart_full="$source/$chart"
+else
+  # get from a repo
+  chart_full="$chart"
+fi
 
 is_deployed() {
   if [ -n "$1" ]; then
