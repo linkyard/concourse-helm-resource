@@ -20,6 +20,7 @@ echo "Resource setup successful."
 # Parse parameters
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
+version=$(jq -r '.params.version // ""' < $payload)
 release_file=$(jq -r '.params.release // ""' < $payload)
 values=$(jq -r '.params.values // ""' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
@@ -39,6 +40,7 @@ fi
 if [[ "$chart" == *.tgz ]]; then
   # it's a file
   chart_full="$source/$chart"
+  version=""
 else
   # get from a repo
   chart_full="$chart"
@@ -76,6 +78,9 @@ helm_install() {
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
+  if [ -n "$version" ]; then
+    helm_cmd="$helm_cmd --version $version"
+  fi
   logfile="/tmp/log"
   mkdir -p /tmp
   $helm_cmd $chart_full | tee $logfile
@@ -97,6 +102,9 @@ helm_upgrade() {
   fi
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
+  fi
+  if [ -n "$version" ]; then
+    helm_cmd="$helm_cmd --version $version"
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
