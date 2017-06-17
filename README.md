@@ -41,9 +41,10 @@ on the cluster.
 
 #### Parameters
 
-* `chart`: *Required.* File containing the helm chart to deploy (.tgz).
+* `chart`: *Required.* Either the file containing the helm chart to deploy (ends with .tgz) or the name of the chart (e.g. `stable/mysql`).
 * `release`: *Optional.* File containing the name of the release. (Default: taken from source configuration).
 * `values`: *Optional.* File containing the values.yaml for the deployment.
+* `version`: *Optional* Chart version to deploy. Only applies if `chart` is not a file.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
 * `wait_until_ready`: *Optional.* Set to the number of seconds it should wait until all the resources in
