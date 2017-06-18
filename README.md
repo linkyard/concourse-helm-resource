@@ -29,7 +29,7 @@ resource_types:
 
 ### `check`: Check for new releases
 
-Any new revisions to the release are returned, no matter their current state. Thre release must be specified in the
+Any new revisions to the release are returned, no matter their current state. The release must be specified in the
 source for `check` to work.
 
 ### `in`: Not Supported
