@@ -43,8 +43,9 @@ on the cluster.
 * `chart`: *Required.* File containing the helm chart to deploy (.tgz).
 * `release`: *Optional.* File containing the name of the release. (Default: taken from source configuration).
 * `values`: *Optional.* File containing the values.yaml for the deployment.
-* `override_values`: *Optional.* Map of values that can override those defined in values.yaml. Value can be
-    string or path to a file that contains the value.
+* `override_values`: *Optional.* Array of values that can override those defined in values.yaml. Each entry in
+  the array is a map containing a key and a value or path. Value is set directly while path reads the contents of
+  the file in that path.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
 * `wait_until_ready`: *Optional.* Set to the number of seconds it should wait until all the resources in
@@ -80,6 +81,8 @@ jobs:
       chart: source-repo/chart-0.0.1.tgz
       values: source-repo/values.yaml
       override_values:
-        replicas: 2
-        image.tag: version/number # Read value from version/number if file exists
+      - key: replicas
+        value: 2
+      - key: version
+        path: version/number # Read value from version/number
 ```
