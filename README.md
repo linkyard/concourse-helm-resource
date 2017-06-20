@@ -44,6 +44,9 @@ on the cluster.
 * `chart`: *Required.* Either the file containing the helm chart to deploy (ends with .tgz) or the name of the chart (e.g. `stable/mysql`).
 * `release`: *Optional.* File containing the name of the release. (Default: taken from source configuration).
 * `values`: *Optional.* File containing the values.yaml for the deployment.
+* `override_values`: *Optional.* Array of values that can override those defined in values.yaml. Each entry in
+  the array is a map containing a key and a value or path. Value is set directly while path reads the contents of
+  the file in that path.
 * `version`: *Optional* Chart version to deploy. Only applies if `chart` is not a file.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
@@ -79,4 +82,9 @@ jobs:
     params:
       chart: source-repo/chart-0.0.1.tgz
       values: source-repo/values.yaml
+      override_values:
+      - key: replicas
+        value: 2
+      - key: version
+        path: version/number # Read value from version/number
 ```

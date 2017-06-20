@@ -27,7 +27,10 @@ wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
+override_values=$(jq -r ".params.override_values[]? | if .key and .value then (.key + \"=\" + .value) else empty end"  < $payload)
+override_values_file=$(jq -r ".params.override_values[]? | if .key and .path then (.key + \"=\" + .path) else empty end" < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
+
 if [ -z "$chart" ]; then
   echo "invalid payload (missing chart)"
   exit 1
@@ -64,6 +67,21 @@ is_deployed() {
   fi
 }
 
+set_overriden_values() {
+  # Get value from given path
+  for overriden_value_file in $override_values_file; do
+    # Get key and value for each overridden file value
+    key=${overriden_value_file%%=*}
+    value=${overriden_value_file#*=}
+    helm_cmd="$helm_cmd --set $key=$(cat $source/$value)"
+  done
+
+  # Set value directly
+  for overriden_value in $override_values; do
+    helm_cmd="$helm_cmd --set $overriden_value"
+  done
+}
+
 helm_install() {
   helm_cmd="helm install"
   helm_cmd="$helm_cmd --namespace $namespace"
@@ -73,6 +91,7 @@ helm_install() {
   if [ -n "$values" ]; then
     helm_cmd="$helm_cmd -f $source/$values"
   fi
+  set_overriden_values
   if [ "$replace" = true ]; then
     helm_cmd="$helm_cmd --replace"
   fi
@@ -101,6 +120,7 @@ helm_upgrade() {
   if [ -n "$values" ]; then
     helm_cmd="$helm_cmd -f $source/$values"
   fi
+  set_overriden_values
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
