@@ -14,12 +14,13 @@ payload=$(mktemp $TMPDIR/helm-resource-request.XXXXXX)
 cat > $payload <&0
 
 # Prepare
-setup_resource $payload
+setup_resource $payload $source
 echo "Resource setup successful."
 
 # Parse parameters
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
+version=$(jq -r '.params.version // ""' < $payload)
 release_file=$(jq -r '.params.release // ""' < $payload)
 values=$(jq -r '.params.values // ""' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
@@ -28,6 +29,7 @@ replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
 override_values=$(jq -r ".params.override_values[]? | if .key and .value then (.key + \"=\" + .value) else empty end"  < $payload)
 override_values_file=$(jq -r ".params.override_values[]? | if .key and .path then (.key + \"=\" + .path) else empty end" < $payload)
+recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 
 if [ -z "$chart" ]; then
   echo "invalid payload (missing chart)"
@@ -39,6 +41,14 @@ else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
 
+if [[ "$chart" == *.tgz ]]; then
+  # it's a file
+  chart_full="$source/$chart"
+  version=""
+else
+  # get from a repo
+  chart_full="$chart"
+fi
 
 is_deployed() {
   if [ -n "$1" ]; then
@@ -88,9 +98,12 @@ helm_install() {
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
+  if [ -n "$version" ]; then
+    helm_cmd="$helm_cmd --version $version"
+  fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  $helm_cmd $source/$chart | tee $logfile
+  $helm_cmd $chart_full | tee $logfile
 
   # Find the name of the release
   release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
@@ -111,10 +124,16 @@ helm_upgrade() {
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
+  if [ -n "$version" ]; then
+    helm_cmd="$helm_cmd --version $version"
+  fi
+  if [ "$recreate_pods" = true ]; then
+    helm_cmd="$helm_cmd --recreate-pods"
+  fi
   logfile="/tmp/log"
   mkdir -p /tmp
   set -x
-  $helm_cmd $source/$chart | tee $logfile
+  $helm_cmd $chart_full | tee $logfile
   set +x
 }
 
