@@ -59,7 +59,7 @@ setup_repos() {
     name=$(echo $r | cut -f1 -d' ')
     url=$(echo $r | cut -f2 -d' ')
     echo Installing helm repository $name $url
-    helm repo add $name $urn
+    helm repo add $name $url
   done
 }
 
