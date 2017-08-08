@@ -51,9 +51,20 @@ setup_helm() {
   helm version
 }
 
+setup_repos() {
+  repos=$(jq -r '(try .source.repos[] catch [][]) | (.name+" "+.url)' < $1)
+
+  IFS=$'\n'
+  for r in $repos; do
+    echo Installing helm repository $r
+    helm repo add $r
+  done
+}
+
 setup_resource() {
   echo "Initializing kubectl..."
   setup_kubernetes $1 $2
   echo "Initializing helm..."
   setup_helm
+  setup_repos $1
 }
