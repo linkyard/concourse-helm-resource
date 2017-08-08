@@ -56,8 +56,10 @@ setup_repos() {
 
   IFS=$'\n'
   for r in $repos; do
-    echo Installing helm repository $r
-    helm repo add $r
+    name=$(echo $r | cut -f1 -d' ')
+    url=$(echo $r | cut -f2 -d' ')
+    echo Installing helm repository $name $url
+    helm repo add $name $urn
   done
 }
 
