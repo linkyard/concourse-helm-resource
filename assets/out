@@ -136,9 +136,7 @@ helm_upgrade() {
   mkdir -p /tmp
   helm_cmd="$helm_cmd $chart_full | tee $logfile"
   echo "Running command $helm_cmd"
-  set -x
   eval $helm_cmd
-  set +x
 }
 
 helm_delete() {
