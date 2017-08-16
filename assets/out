@@ -103,7 +103,9 @@ helm_install() {
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  $helm_cmd $chart_full | tee $logfile
+  helm_cmd="$helm_cmd $chart_full | tee $logfile"
+  echo "Running command $helm_cmd"
+  eval $helm_cmd
 
   # Find the name of the release
   release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
@@ -132,9 +134,9 @@ helm_upgrade() {
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  set -x
-  $helm_cmd $chart_full | tee $logfile
-  set +x
+  helm_cmd="$helm_cmd $chart_full | tee $logfile"
+  echo "Running command $helm_cmd"
+  eval $helm_cmd
 }
 
 helm_delete() {
@@ -149,7 +151,9 @@ helm_delete() {
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  $helm_cmd $release| tee $logfile
+  helm_cmd="$helm_cmd $release | tee $logfile"
+  echo "Running command $helm_cmd"
+  eval $helm_cmd
 }
 
 wait_ready() {
