@@ -22,7 +22,7 @@ namespace=$(jq -r '.source.namespace // "default"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
 version=$(jq -r '.params.version // ""' < $payload)
 release_file=$(jq -r '.params.release // ""' < $payload)
-values=$(jq -r '.params.values // ""' < $payload)
+values=$(jq -r '.params.values // "" | if type == "array" then .[] else . end' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
@@ -89,7 +89,9 @@ helm_install() {
     helm_cmd="$helm_cmd -n $release"
   fi
   if [ -n "$values" ]; then
-    helm_cmd="$helm_cmd -f $source/$values"
+    for value in $values; do
+      helm_cmd="$helm_cmd -f $source/$value"
+    done
   fi
   set_overriden_values
   if [ "$replace" = true ]; then
@@ -120,7 +122,9 @@ current_revision() {
 helm_upgrade() {
   helm_cmd="helm upgrade $release"
   if [ -n "$values" ]; then
-    helm_cmd="$helm_cmd -f $source/$values"
+    for value in $values; do
+      helm_cmd="$helm_cmd -f $source/$value"
+    done
   fi
   set_overriden_values
   if [ "$debug" = true ]; then
