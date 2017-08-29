@@ -1,9 +1,9 @@
-FROM linkyard/docker-helm:v2.5.0
+FROM linkyard/docker-helm:2.6.0
 MAINTAINER Mario Siegenthaler <mario.siegenthaler@linkyard.ch>
 
 RUN apk add --update --upgrade --no-cache jq bash nodejs curl yarn
 
-ENV KUBERNETES_VERSION 1.6.6
+ENV KUBERNETES_VERSION 1.7.4
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl; \
     chmod +x /usr/local/bin/kubectl
 
