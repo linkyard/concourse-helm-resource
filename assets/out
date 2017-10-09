@@ -27,6 +27,7 @@ wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
+devel=$(jq -r '.params.devel // "false"' < $payload)
 override_values=$(jq -r ".params.override_values[]? | if .key and .value then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
 override_values_file=$(jq -r ".params.override_values[]? | if .key and .path then (.key + \"=\" + .path) else empty end" < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
@@ -100,6 +101,9 @@ helm_install() {
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
   fi
+  if [ "$devel" = true ]; then
+    helm_cmd="$helm_cmd --devel"
+  fi
   if [ -n "$version" ]; then
     helm_cmd="$helm_cmd --version $version"
   fi
@@ -129,6 +133,9 @@ helm_upgrade() {
   set_overriden_values
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
+  fi
+  if [ "$devel" = true ]; then
+    helm_cmd="$helm_cmd --devel"
   fi
   if [ -n "$version" ]; then
     helm_cmd="$helm_cmd --version $version"
