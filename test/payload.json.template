@@ -11,6 +11,7 @@
     "replace": "true",
     "delete": "false",
     "debug": "false",
+    "devel": "false",
     "wait_until_ready": "10"
   }
 }
