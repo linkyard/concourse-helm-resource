@@ -27,7 +27,7 @@ wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
-override_values=$(jq -r ".params.override_values[]? | if .key and .value then (.key + \"=\" + .value) else empty end"  < $payload)
+override_values=$(jq -r ".params.override_values[]? | if .key and .value then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
 override_values_file=$(jq -r ".params.override_values[]? | if .key and .path then (.key + \"=\" + .path) else empty end" < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 
@@ -78,7 +78,7 @@ set_overriden_values() {
 
   # Set value directly
   for overriden_value in $override_values; do
-    helm_cmd="$helm_cmd --set $overriden_value"
+    helm_cmd="$helm_cmd --set '$(echo $overriden_value | base64 -d)'"
   done
 }
 
