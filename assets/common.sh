@@ -44,6 +44,8 @@ setup_kubernetes() {
 
   kubectl config use-context default
   kubectl cluster-info
+  echo "Currently deployed namespaces on $cluster_url:"
+  kubectl get ns
 }
 
 setup_helm() {
