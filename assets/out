@@ -85,6 +85,24 @@ set_overriden_values() {
     helm_cmd="$helm_cmd --set '$(echo $overriden_value | base64 -d)'"
     helm_echo="$helm_echo --set '$(echo $overriden_value | base64 -d)'"
   done
+
+  # Get value from given path, but hide the value in the echo
+  for overriden_secret_file in $override_secrets_file; do
+    # Get key and value for each overridden file value
+    key=${overriden_secret_file%%=*}
+    value=${overriden_secret_file#*=}
+    helm_cmd="$helm_cmd --set $key=$(cat $source/$value)"
+    helm_echo="$helm_echo --set $key=***HIDDEN***"
+  done
+
+  # Set value directly, but hide the value in the echo
+  for overriden_secret in $override_secrets; do
+    kv=$(echo $overriden_secret | base64 -d)
+    key=${kv%%=*}
+    value=${kv#*=}
+    helm_cmd="$helm_cmd --set '$kv'"
+    helm_echo="$helm_echo --set '$key=***HIDDEN***'"
+  done
 }
 
 helm_install() {
