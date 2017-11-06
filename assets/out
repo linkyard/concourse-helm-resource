@@ -77,42 +77,53 @@ set_overriden_values() {
     key=${overriden_value_file%%=*}
     value=${overriden_value_file#*=}
     helm_cmd="$helm_cmd --set $key=$(cat $source/$value)"
+    helm_echo="$helm_echo --set $key=$(cat $source/$value)"
   done
 
   # Set value directly
   for overriden_value in $override_values; do
     helm_cmd="$helm_cmd --set '$(echo $overriden_value | base64 -d)'"
+    helm_echo="$helm_echo --set '$(echo $overriden_value | base64 -d)'"
   done
 }
 
 helm_install() {
   helm_cmd="helm install"
+  helm_echo="helm install"
   helm_cmd="$helm_cmd --namespace $namespace"
+  helm_echo="$helm_echo --namespace $namespace"
   if [ -n "$release" ]; then
     helm_cmd="$helm_cmd -n $release"
+    helm_echo="$helm_echo -n $release"
   fi
   if [ -n "$values" ]; then
     for value in $values; do
       helm_cmd="$helm_cmd -f $source/$value"
+      helm_echo="$helm_echo -f $source/$value"
     done
   fi
   set_overriden_values
   if [ "$replace" = true ]; then
     helm_cmd="$helm_cmd --replace"
+    helm_echo="$helm_echo --replace"
   fi
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
+    helm_echo="$helm_echo --dry-run --debug"
   fi
   if [ "$devel" = true ]; then
     helm_cmd="$helm_cmd --devel"
+    helm_echo="$helm_echo --devel"
   fi
   if [ -n "$version" ]; then
     helm_cmd="$helm_cmd --version $version"
+    helm_echo="$helm_echo --version $version"
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
   helm_cmd="$helm_cmd $chart_full | tee $logfile"
-  echo "Running command $helm_cmd"
+  helm_echo="$helm_echo $chart_full | tee $logfile"
+  echo "Running command $helm_echo"
   eval $helm_cmd
 
   # Find the name of the release
@@ -127,28 +138,35 @@ current_revision() {
 
 helm_upgrade() {
   helm_cmd="helm upgrade $release"
+  helm_echo="helm upgrade $release"
   if [ -n "$values" ]; then
     for value in $values; do
       helm_cmd="$helm_cmd -f $source/$value"
+      helm_echo="$helm_echo -f $source/$value"
     done
   fi
   set_overriden_values
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
+    helm_echo="$helm_echo --dry-run --debug"
   fi
   if [ "$devel" = true ]; then
     helm_cmd="$helm_cmd --devel"
+    helm_echo="$helm_echo --devel"
   fi
   if [ -n "$version" ]; then
     helm_cmd="$helm_cmd --version $version"
+    helm_echo="$helm_echo --version $version"
   fi
   if [ "$recreate_pods" = true ]; then
     helm_cmd="$helm_cmd --recreate-pods"
+    helm_echo="$helm_echo --recreate-pods"
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
   helm_cmd="$helm_cmd $chart_full | tee $logfile"
-  echo "Running command $helm_cmd"
+  helm_echo="$helm_echo $chart_full | tee $logfile"
+  echo "Running command $helm_echo"
   eval $helm_cmd
 }
 
@@ -159,13 +177,16 @@ helm_delete() {
   fi
   echo "Deleting the release $release..."
   helm_cmd="helm delete"
+  helm_echo="helm delete"
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
+    helm_echo="$helm_echo --dry-run --debug"
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
   helm_cmd="$helm_cmd $release | tee $logfile"
-  echo "Running command $helm_cmd"
+  helm_echo="$helm_echo $release | tee $logfile"
+  echo "Running command $helm_echo"
   eval $helm_cmd
 }
 
