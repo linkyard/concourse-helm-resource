@@ -47,7 +47,7 @@ on the cluster.
 * `values`: *Optional.* File containing the values.yaml for the deployment. Supports setting multiple value files using an array.
 * `override_values`: *Optional.* Array of values that can override those defined in values.yaml. Each entry in
   the array is a map containing a key and a value or path. Value is set directly while path reads the contents of
-  the file in that path.
+  the file in that path. A `hide: true` parameter ensures that the value is not logged and instead replaced with `***HIDDEN***`
 * `version`: *Optional* Chart version to deploy. Only applies if `chart` is not a file.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
@@ -93,4 +93,7 @@ jobs:
         value: 2
       - key: version
         path: version/number # Read value from version/number
+      - key: secret
+        value: ((my-top-secret-value)) # Pulled from a credentials backend like Vault
+        hide: true # Hides value in output
 ```
