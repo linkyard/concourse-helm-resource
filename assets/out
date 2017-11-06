@@ -28,8 +28,10 @@ debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
-override_values=$(jq -r ".params.override_values[]? | if .key and .value then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
-override_values_file=$(jq -r ".params.override_values[]? | if .key and .path then (.key + \"=\" + .path) else empty end" < $payload)
+override_values=$(jq -r ".params.override_values[]? | if .key and .value and (.hide // false) == false then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
+override_values_file=$(jq -r ".params.override_values[]? | if .key and .path and (.hide // false) == false then (.key + \"=\" + .path) else empty end" < $payload)
+override_secrets=$(jq -r ".params.override_values[]? | if .key and .value and .hide then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
+override_secrets_file=$(jq -r ".params.override_values[]? | if .key and .path and .hide then (.key + \"=\" + .path) else empty end" < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 
 if [ -z "$chart" ]; then
