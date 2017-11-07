@@ -10,7 +10,7 @@ source /opt/resource/common.sh
 
 # Read inputs
 source=$1
-payload=$(mktemp $TMPDIR/helm-resource-request.XXXXXX)
+payload=$(mktemp helm-resource-request.XXXXXX)
 cat > $payload <&0
 
 # Prepare
