@@ -1,4 +1,4 @@
-FROM linkyard/docker-helm:2.6.2
+FROM linkyard/docker-helm:2.7.0
 MAINTAINER Mario Siegenthaler <mario.siegenthaler@linkyard.ch>
 
 RUN apk add --update --upgrade --no-cache jq bash nodejs curl yarn
