@@ -212,7 +212,7 @@ helm_delete() {
 wait_ready() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
     echo "Waiting until deployment of $release is ready..."
-    node /opt/wait-for-helm-deployment/src/index.js $release $wait_until_ready
+    node /opt/wait-for-helm-deployment/src/index.js $release $tiller_namespace $wait_until_ready
   fi
 }
 
