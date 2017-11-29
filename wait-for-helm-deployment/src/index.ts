@@ -6,9 +6,9 @@ import {moveCursor} from 'readline'
 const interval = 1000 //ms
 const defaultTimeout = 300000 //ms
 
-function readHelmStatus(release) {
+function readHelmStatus(release, tillerNamespace) {
   return new Promise<string>((fulfill, reject) => {
-    execFile('helm', ['status', release], function (err, status, stderr) {
+    execFile('helm', ['status', '--tiller-namespace', tillerNamespace, release], function (err, status, stderr) {
       if (err) {
         return reject(`Error getting status from helm: ${err}\n${stderr}`)
       }
@@ -39,7 +39,7 @@ function checkReady(status: Resource[]) {
 }
 
 function waitUntilReady(release) {
-  readHelmStatus(release)
+  readHelmStatus(release, tillerNamespace)
     .then(parseHelmStatus)
     .then(checkReady).then(ready => {
     if (ready) return process.exit(0)
@@ -54,7 +54,8 @@ function waitUntilReady(release) {
 }
 
 const release = process.argv[2]
-const timeout = (parseInt(process.argv.length > 3 && process.argv[3]) * 1000) || defaultTimeout
+const tillerNamespace = process.argv[3]
+const timeout = (parseInt(process.argv.length > 4 && process.argv[4]) * 1000) || defaultTimeout
 setTimeout(() => timeoutExpired = true, timeout)
 
 waitUntilReady(release)

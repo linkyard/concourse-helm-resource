@@ -48,19 +48,22 @@ setup_kubernetes() {
 }
 
 setup_helm() {
-  helm init -c > /dev/nulll
-  helm version
+  tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
+
+  helm init -c --tiller-namespace $tiller_namespace > /dev/nulll
+  helm version --tiller-namespace $tiller_namespace
 }
 
 setup_repos() {
   repos=$(jq -r '(try .source.repos[] catch [][]) | (.name+" "+.url)' < $1)
+  tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 
   IFS=$'\n'
   for r in $repos; do
     name=$(echo $r | cut -f1 -d' ')
     url=$(echo $r | cut -f2 -d' ')
     echo Installing helm repository $name $url
-    helm repo add $name $url
+    helm repo add --tiller-namespace $tiller_namespace $name $url
   done
 }
 
@@ -68,6 +71,6 @@ setup_resource() {
   echo "Initializing kubectl..."
   setup_kubernetes $1 $2
   echo "Initializing helm..."
-  setup_helm
+  setup_helm $1
   setup_repos $1
 }

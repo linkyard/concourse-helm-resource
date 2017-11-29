@@ -19,6 +19,7 @@ echo "Resource setup successful."
 
 # Parse parameters
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
+tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
 version=$(jq -r '.params.version // ""' < $payload)
 release_file=$(jq -r '.params.release // ""' < $payload)
@@ -56,7 +57,7 @@ fi
 is_deployed() {
   if [ -n "$1" ]; then
     set +e
-    helm status $1 | grep "STATUS: DEPLOYED" > /dev/null
+    helm status --tiller-namespace $tiller_namespace $1 | grep "STATUS: DEPLOYED" > /dev/null
     if [ $? = 0 ]; then
       # exists and is deployed
       echo true
@@ -108,8 +109,8 @@ set_overriden_values() {
 helm_install() {
   helm_cmd="helm install"
   helm_echo="helm install"
-  helm_cmd="$helm_cmd --namespace $namespace"
-  helm_echo="$helm_echo --namespace $namespace"
+  helm_cmd="$helm_cmd --namespace $namespace --tiller-namespace $tiller_namespace"
+  helm_echo="$helm_echo --namespace $namespace --tiller-namespace $tiller_namespace"
   if [ -n "$release" ]; then
     helm_cmd="$helm_cmd -n $release"
     helm_echo="$helm_echo -n $release"
@@ -150,13 +151,13 @@ helm_install() {
 
 # Find the current revision of a helm release
 current_revision() {
-  revision=`helm history $release | grep "DEPLOYED" | awk '{print $1}'`
+  revision=`helm history --tiller-namespace $tiller_namespace $release | grep "DEPLOYED" | awk '{print $1}'`
   echo $revision
 }
 
 helm_upgrade() {
-  helm_cmd="helm upgrade $release"
-  helm_echo="helm upgrade $release"
+  helm_cmd="helm upgrade --tiller-namespace $tiller_namespace $release"
+  helm_echo="helm upgrade --tiller-namespace $tiller_namespace $release"
   if [ -n "$values" ]; then
     for value in $values; do
       helm_cmd="$helm_cmd -f $source/$value"
@@ -194,8 +195,8 @@ helm_delete() {
     exit 1
   fi
   echo "Deleting the release $release..."
-  helm_cmd="helm delete"
-  helm_echo="helm delete"
+  helm_cmd="helm delete --tiller-namespace $tiller_namespace"
+  helm_echo="helm delete --tiller-namespace $tiller_namespace"
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
     helm_echo="$helm_echo --dry-run --debug"
@@ -211,7 +212,7 @@ helm_delete() {
 wait_ready() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
     echo "Waiting until deployment of $release is ready..."
-    node /opt/wait-for-helm-deployment/src/index.js $release $wait_until_ready
+    node /opt/wait-for-helm-deployment/src/index.js $release $tiller_namespace $wait_until_ready
   fi
 }
 
