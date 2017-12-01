@@ -57,12 +57,12 @@ fi
 is_deployed() {
   if [ -n "$1" ]; then
     set +e
-    helm status --tiller-namespace $tiller_namespace $1 | grep "STATUS: DEPLOYED" > /dev/null
+    helm status --tiller-namespace $tiller_namespace $1 | grep "STATUS: " > /dev/null
     if [ $? = 0 ]; then
-      # exists and is deployed
+      # exists 
       echo true
     else
-      # not deployed at the moment
+      # does not exist
       echo false
     fi
     set -e
