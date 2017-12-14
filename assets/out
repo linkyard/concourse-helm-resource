@@ -59,7 +59,7 @@ is_deployed() {
     set +e
     helm status --tiller-namespace $tiller_namespace $1 | grep "STATUS: " > /dev/null
     if [ $? = 0 ]; then
-      # exists 
+      # exists
       echo true
     else
       # does not exist
@@ -92,7 +92,7 @@ set_overriden_values() {
     # Get key and value for each overridden file value
     key=${overriden_secret_file%%=*}
     value=${overriden_secret_file#*=}
-    helm_cmd="$helm_cmd --set $key=$(cat $source/$value)"
+    helm_cmd="$helm_cmd --set '$key=$(cat $source/$value)'"
     helm_echo="$helm_echo --set $key=***HIDDEN***"
   done
 
