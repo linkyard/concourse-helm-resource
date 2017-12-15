@@ -77,8 +77,8 @@ set_overriden_values() {
     # Get key and value for each overridden file value
     key=${overriden_value_file%%=*}
     value=${overriden_value_file#*=}
-    helm_cmd="$helm_cmd --set $key=$(cat $source/$value)"
-    helm_echo="$helm_echo --set $key=$(cat $source/$value)"
+    helm_cmd="$helm_cmd --set '$key=$(cat $source/$value)'"
+    helm_echo="$helm_echo --set '$key=$(cat $source/$value)'"
   done
 
   # Set value directly
@@ -143,7 +143,7 @@ helm_install() {
   helm_cmd="$helm_cmd $chart_full | tee $logfile"
   helm_echo="$helm_echo $chart_full | tee $logfile"
   echo "Running command $helm_echo"
-  eval $helm_cmd
+  eval "$helm_cmd"
 
   # Find the name of the release
   release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
@@ -186,7 +186,7 @@ helm_upgrade() {
   helm_cmd="$helm_cmd $chart_full | tee $logfile"
   helm_echo="$helm_echo $chart_full | tee $logfile"
   echo "Running command $helm_echo"
-  eval $helm_cmd
+  eval "$helm_cmd"
 }
 
 helm_delete() {
