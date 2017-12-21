@@ -57,7 +57,8 @@ fi
 is_deployed() {
   if [ -n "$1" ]; then
     set +e
-    helm status --tiller-namespace $tiller_namespace $1 | grep "STATUS: " > /dev/null
+    set +o pipefail
+    helm history --tiller-namespace $tiller_namespace $1 2>&1 | grep "DEPLOYED" > /dev/null
     if [ $? = 0 ]; then
       # exists
       echo true
@@ -65,6 +66,7 @@ is_deployed() {
       # does not exist
       echo false
     fi
+    set -o pipefail
     set -e
   else
     echo false
