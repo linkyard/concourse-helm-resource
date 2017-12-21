@@ -54,11 +54,26 @@ setup_helm() {
   if [ "$init_server" = true ]; then
     tiller_service_account=$(jq -r '.source.tiller_service_account // "default"' < $1)
     helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+    wait_for_service_up tiller-deploy 10
   else
     helm init -c --tiller-namespace $tiller_namespace > /dev/nulll
   fi
 
   helm version --tiller-namespace $tiller_namespace
+}
+
+wait_for_service_up() {
+  SERVICE=$1
+  TIMEOUT=$2
+  if [ "$TIMEOUT" -le "0" ]; then
+    echo "Service $SERVICE was not ready in time"
+    exit 1
+  fi
+  RESULT=`kubectl get endpoints --namespace=mario $SERVICE -o jsonpath={.subsets[].addresses[].targetRef.name} 2> /dev/null || true`
+  if [ -z "$RESULT" ]; then
+    delay 1000
+    wait_for_service_ready $SERVICE $((--TIMEOUT))
+  fi
 }
 
 setup_repos() {
