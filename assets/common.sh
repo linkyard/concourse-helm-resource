@@ -48,9 +48,16 @@ setup_kubernetes() {
 }
 
 setup_helm() {
+  init_server=$(jq -r '.source.helm_init_server // "false"' < $1)
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 
-  helm init -c --tiller-namespace $tiller_namespace > /dev/nulll
+  if [ "$init_server" = true ]; then
+    tiller_service_account=$(jq -r '.source.tiller_service_account // "default"' < $1)
+    helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+  else
+    helm init -c --tiller-namespace $tiller_namespace > /dev/nulll
+  fi
+
   helm version --tiller-namespace $tiller_namespace
 }
 
