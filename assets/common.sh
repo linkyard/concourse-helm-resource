@@ -69,7 +69,7 @@ wait_for_service_up() {
     echo "Service $SERVICE was not ready in time"
     exit 1
   fi
-  RESULT=`kubectl get endpoints --namespace=mario $SERVICE -o jsonpath={.subsets[].addresses[].targetRef.name} 2> /dev/null || true`
+  RESULT=`kubectl get endpoints --namespace=$tiller_namespace $SERVICE -o jsonpath={.subsets[].addresses[].targetRef.name} 2> /dev/null || true`
   if [ -z "$RESULT" ]; then
     sleep 1
     wait_for_service_up $SERVICE $((--TIMEOUT))
