@@ -72,7 +72,7 @@ wait_for_service_up() {
   RESULT=`kubectl get endpoints --namespace=mario $SERVICE -o jsonpath={.subsets[].addresses[].targetRef.name} 2> /dev/null || true`
   if [ -z "$RESULT" ]; then
     sleep 1
-    wait_for_service_ready $SERVICE $((--TIMEOUT))
+    wait_for_service_up $SERVICE $((--TIMEOUT))
   fi
 }
 
