@@ -29,6 +29,8 @@ debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
+recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
+force=$(jq -r '.params.force // "false"' < $payload)
 override_values=$(jq -r ".params.override_values[]? | if .key and .value and (.hide // false) == false then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
 override_values_file=$(jq -r ".params.override_values[]? | if .key and .path and (.hide // false) == false then (.key + \"=\" + .path) else empty end" < $payload)
 override_secrets=$(jq -r ".params.override_values[]? | if .key and .value and .hide then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
@@ -123,6 +125,10 @@ helm_upgrade() {
   if [ "$recreate_pods" = true ]; then
     helm_cmd="$helm_cmd --recreate-pods"
     helm_echo="$helm_echo --recreate-pods"
+  fi
+  if [ "$force" = true ]; then
+    helm_cmd="$helm_cmd --force"
+    helm_echo="$helm_echo --force"
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
