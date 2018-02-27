@@ -56,6 +56,7 @@ on the cluster.
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
 * `devel`: *Optional.* Allow development versions of chart to be installed. This is useful when wanting to install pre-release
   charts (i.e. 1.0.2-rc1) without having to specify a version. (Default: false)
+* `debug`: *Optional.* Dry run the helm install with the debug flag which logs interpolated chart templates. (Default: false)
 * `wait_until_ready`: *Optional.* Set to the number of seconds it should wait until all the resources in
     the chart are ready. (Default: `0` which means don't wait).
 * `recreate_pods`: *Optional.* This flag will cause all pods to be recreated when upgrading. (Default: false)
