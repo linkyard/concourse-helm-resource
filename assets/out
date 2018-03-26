@@ -137,6 +137,9 @@ helm_install() {
     helm_echo="$helm_echo --devel"
   fi
   if [ -n "$version" ]; then
+    if [ -f "$source/$version" ]; then
+      version=$(cat $source/$version)
+    fi
     helm_cmd="$helm_cmd --version $version"
     helm_echo="$helm_echo --version $version"
   fi
@@ -176,6 +179,9 @@ helm_upgrade() {
     helm_echo="$helm_echo --devel"
   fi
   if [ -n "$version" ]; then
+    if [ -f "$source/$version" ]; then
+      version=$(cat $source/$version)
+    fi
     helm_cmd="$helm_cmd --version $version"
     helm_echo="$helm_echo --version $version"
   fi
