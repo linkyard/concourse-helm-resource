@@ -54,6 +54,7 @@ on the cluster.
 * `version`: *Optional* Chart version to deploy, can be a file or a value. Only applies if `chart` is not a file.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
+* `force`: *Optional.* Force resource update through delete/recreate if needed. (Default: false)
 * `devel`: *Optional.* Allow development versions of chart to be installed. This is useful when wanting to install pre-release
   charts (i.e. 1.0.2-rc1) without having to specify a version. (Default: false)
 * `debug`: *Optional.* Dry run the helm install with the debug flag which logs interpolated chart templates. (Default: false)
