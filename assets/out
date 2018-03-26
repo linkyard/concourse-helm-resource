@@ -164,7 +164,6 @@ if [ "$delete" = true ]; then
 else
   echo "Installing $release"
   helm_upgrade
-fi
 
   revision=$(current_revision)
   echo "Deployed revision $revision of $release"
