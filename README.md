@@ -5,14 +5,14 @@ Deploy to [Kubernetes Helm](https://github.com/kubernetes/helm) from [Concourse]
 ## Installing
 
 Add the resource type to your pipeline:
-```
+
+```yaml
 resource_types:
 - name: helm
   type: docker-image
   source:
     repository: linkyard/concourse-helm-resource
 ```
-
 
 ## Source Configuration
 
@@ -62,14 +62,13 @@ on the cluster.
     the chart are ready. (Default: `0` which means don't wait).
 * `recreate_pods`: *Optional.* This flag will cause all pods to be recreated when upgrading. (Default: false)
 
-
 ## Example
 
 ### Out
 
 Define the resource:
 
-```
+```yaml
 resources:
 - name: myapp-helm
   type: helm
@@ -85,7 +84,7 @@ resources:
 
 Add to job:
 
-```
+```yaml
 jobs:
   # ...
   plan:
