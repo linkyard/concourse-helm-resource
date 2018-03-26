@@ -54,25 +54,6 @@ else
   chart_full="$chart"
 fi
 
-is_deployed() {
-  if [ -n "$1" ]; then
-    set +e
-    set +o pipefail
-    helm history --tiller-namespace $tiller_namespace $1 2>&1 | grep "DEPLOYED" > /dev/null
-    if [ $? = 0 ]; then
-      # exists
-      echo true
-    else
-      # does not exist
-      echo false
-    fi
-    set -o pipefail
-    set -e
-  else
-    echo false
-  fi
-}
-
 set_overriden_values() {
   # Get value from given path
   for overriden_value_file in $override_values_file; do
@@ -108,49 +89,6 @@ set_overriden_values() {
   done
 }
 
-helm_install() {
-  helm_cmd="helm install"
-  helm_echo="helm install"
-  helm_cmd="$helm_cmd --namespace $namespace --tiller-namespace $tiller_namespace"
-  helm_echo="$helm_echo --namespace $namespace --tiller-namespace $tiller_namespace"
-  if [ -n "$release" ]; then
-    helm_cmd="$helm_cmd -n $release"
-    helm_echo="$helm_echo -n $release"
-  fi
-  if [ -n "$values" ]; then
-    for value in $values; do
-      helm_cmd="$helm_cmd -f $source/$value"
-      helm_echo="$helm_echo -f $source/$value"
-    done
-  fi
-  set_overriden_values
-  if [ "$replace" = true ]; then
-    helm_cmd="$helm_cmd --replace"
-    helm_echo="$helm_echo --replace"
-  fi
-  if [ "$debug" = true ]; then
-    helm_cmd="$helm_cmd --dry-run --debug"
-    helm_echo="$helm_echo --dry-run --debug"
-  fi
-  if [ "$devel" = true ]; then
-    helm_cmd="$helm_cmd --devel"
-    helm_echo="$helm_echo --devel"
-  fi
-  if [ -n "$version" ]; then
-    helm_cmd="$helm_cmd --version $version"
-    helm_echo="$helm_echo --version $version"
-  fi
-  logfile="/tmp/log"
-  mkdir -p /tmp
-  helm_cmd="$helm_cmd $chart_full | tee $logfile"
-  helm_echo="$helm_echo $chart_full | tee $logfile"
-  echo "Running command $helm_echo"
-  eval "$helm_cmd"
-
-  # Find the name of the release
-  release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
-}
-
 # Find the current revision of a helm release
 current_revision() {
   revision=`helm history --tiller-namespace $tiller_namespace $release | grep "DEPLOYED" | awk '{print $1}'`
@@ -158,8 +96,8 @@ current_revision() {
 }
 
 helm_upgrade() {
-  helm_cmd="helm upgrade --tiller-namespace $tiller_namespace $release"
-  helm_echo="helm upgrade --tiller-namespace $tiller_namespace $release"
+  helm_cmd="helm upgrade --install --tiller-namespace $tiller_namespace $release"
+  helm_echo="helm upgrade --install --tiller-namespace $tiller_namespace $release"
   if [ -n "$values" ]; then
     for value in $values; do
       helm_cmd="$helm_cmd -f $source/$value"
@@ -224,13 +162,9 @@ if [ "$delete" = true ]; then
   result="$(jq -n "{version:{release:\"$release\", deleted: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
   echo "$result" | jq -s add  >&3
 else
-  if [ "$(is_deployed $release)" = true ]; then
-    echo "Upgrading $release"
-    helm_upgrade
-  else
-    echo "Installing $release"
-    helm_install
-  fi
+  echo "Installing $release"
+  helm_upgrade
+fi
 
   revision=$(current_revision)
   echo "Deployed revision $revision of $release"
