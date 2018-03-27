@@ -98,8 +98,8 @@ current_revision() {
 }
 
 helm_upgrade() {
-  helm_cmd="helm upgrade --install --tiller-namespace $tiller_namespace $release"
-  helm_echo="helm upgrade --install --tiller-namespace $tiller_namespace $release"
+  helm_cmd="helm upgrade --install --tiller-namespace $tiller_namespace --namespace $namespace $release"
+  helm_echo="helm upgrade --install --tiller-namespace $tiller_namespace --namespace $namespace $release"
   if [ -n "$values" ]; then
     for value in $values; do
       helm_cmd="$helm_cmd -f $source/$value"
