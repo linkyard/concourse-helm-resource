@@ -61,6 +61,7 @@ on the cluster.
 * `wait_until_ready`: *Optional.* Set to the number of seconds it should wait until all the resources in
     the chart are ready. (Default: `0` which means don't wait).
 * `recreate_pods`: *Optional.* This flag will cause all pods to be recreated when upgrading. (Default: false)
+* `kubeconfig_path`: *Optional.* File containing a kubeconfig. Overrides source configuration for cluster, token, and admin config.
 
 ## Example
 
