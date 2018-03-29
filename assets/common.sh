@@ -55,7 +55,7 @@ setup_helm() {
     helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
     wait_for_service_up tiller-deploy 10
   else
-    helm init -c --tiller-namespace $tiller_namespace > /dev/nulll
+    helm init -c --tiller-namespace $tiller_namespace > /dev/null
   fi
 
   helm version --tiller-namespace $tiller_namespace
