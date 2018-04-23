@@ -55,6 +55,7 @@ setup_helm() {
     helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
     wait_for_service_up tiller-deploy 10
   else
+    export HELM_HOST=$(jq -r '.source.helm_host // ""' < $1)
     helm init -c --tiller-namespace $tiller_namespace > /dev/null
   fi
 

@@ -28,6 +28,7 @@ resource_types:
 * `tiller_namespace`: *Optional.* Kubernetes namespace where tiller is running (or will be installed to). (Default: kube-system)
 * `tiller_service_account`: *Optional* Name of the service account that tiller will use (only applies if helm_init_server is true).
 * `repos`: *Optional.* Array of Helm repositories to initialize, each repository is defined as an object with `name` and `url` properties.
+* `helm_host`: *Optional* Address of Tiller. Skips helm discovery process. (only applies if `helm_init_server` is false).
 
 ## Behavior
 
