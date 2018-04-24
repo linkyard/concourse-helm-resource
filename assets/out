@@ -42,7 +42,11 @@ if [ -z "$chart" ]; then
   exit 1
 fi
 if [ -n "$release_file" ]; then
-  release=`cat $source/$release_file`
+  if [ -f "$release_file" ]; then
+    release=`cat $source/$release_file`
+  else
+    release=$release_file
+  fi
 else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
