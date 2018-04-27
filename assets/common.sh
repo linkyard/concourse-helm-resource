@@ -77,15 +77,22 @@ wait_for_service_up() {
 }
 
 setup_repos() {
-  repos=$(jq -r '(try .source.repos[] catch [][]) | (.name+" "+.url)' < $1)
+  repos=$(jq -c '(try .source.repos[] catch [][])' < $1)
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 
   IFS=$'\n'
   for r in $repos; do
-    name=$(echo $r | cut -f1 -d' ')
-    url=$(echo $r | cut -f2 -d' ')
+    name=$(echo $r | jq -r '.name')
+    url=$(echo $r | jq -r '.url')
+    username=$(echo $r | jq -r '.username // ""')
+    password=$(echo $r | jq -r '.password // ""')
+
     echo Installing helm repository $name $url
-    helm repo add --tiller-namespace $tiller_namespace $name $url
+    if [[ -n "$username" && -n "$password" ]]; then
+      helm repo add $name $url --tiller-namespace $tiller_namespace --username $username --password $password
+    else
+      helm repo add $name $url --tiller-namespace $tiller_namespace
+    fi
   done
 }
 
