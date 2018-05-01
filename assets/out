@@ -22,6 +22,7 @@ namespace=$(jq -r '.source.namespace // "default"' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
 version=$(jq -r '.params.version // ""' < $payload)
+namespace_file=$(jq -r '.params.namespace // ""' < $payload)
 release_file=$(jq -r '.params.release // ""' < $payload)
 values=$(jq -r '.params.values // "" | if type == "array" then .[] else . end' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
@@ -41,6 +42,13 @@ if [ -z "$chart" ]; then
   echo "invalid payload (missing chart)"
   exit 1
 fi
+
+if [ -f "$namespace_file" ]; then
+  namespace=`cat $source/$namespace_file`
+elif [ -n "$namespace_file" ]; then
+  namespace=$namespace_file
+fi
+
 if [ -n "$release_file" ]; then
   if [ -f "$release_file" ]; then
     release=`cat $source/$release_file`
