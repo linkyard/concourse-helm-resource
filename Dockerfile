@@ -10,4 +10,7 @@ RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-
 ADD assets /opt/resource
 RUN chmod +x /opt/resource/*
 
+RUN mkdir -p "$(helm home)/plugins"
+RUN helm plugin install https://github.com/databus23/helm-diff
+
 ENTRYPOINT [ "/bin/bash" ]
