@@ -163,18 +163,14 @@ helm_delete() {
     exit 1
   fi
   echo "Deleting the release $release..."
-  helm_cmd="helm delete --tiller-namespace $tiller_namespace"
-  helm_echo="helm delete --tiller-namespace $tiller_namespace"
+  delete_args=("delete" "--tiller-namespace=$tiller_namespace")
   if [ "$debug" = true ]; then
-    helm_cmd="$helm_cmd --dry-run --debug"
-    helm_echo="$helm_echo --dry-run --debug"
+    delete_args+=("--dry-run" "--debug")
   fi
   logfile="/tmp/log"
   mkdir -p /tmp
-  helm_cmd="$helm_cmd $release | tee $logfile"
-  helm_echo="$helm_echo $release | tee $logfile"
-  echo "Running command $helm_echo"
-  eval $helm_cmd
+  echo "Running command helm ${delete_args[@]} | tee $logfile"
+  helm "${delete_args[@]}" | tee $logfile
 }
 
 wait_ready_notice() {
