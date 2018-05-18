@@ -118,6 +118,10 @@ helm_upgrade() {
     done
   fi
   set_overriden_values
+  if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
+    helm_cmd="$helm_cmd --wait --timeout $wait_until_ready"
+    helm_echo="$helm_echo --wait --timeout $wait_until_ready"
+  fi
   if [ "$debug" = true ]; then
     helm_cmd="$helm_cmd --dry-run --debug"
     helm_echo="$helm_echo --dry-run --debug"
@@ -169,10 +173,9 @@ helm_delete() {
   eval $helm_cmd
 }
 
-wait_ready() {
+wait_ready_notice() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
-    echo "Waiting until deployment of $release is ready..."
-    node /opt/wait-for-helm-deployment/src/index.js $release $tiller_namespace $wait_until_ready
+    echo "Waiting until deployment of $release is ready... (up to $wait_until_ready seconds)"
   fi
 }
 
@@ -187,7 +190,7 @@ else
 
   revision=$(current_revision)
   echo "Deployed revision $revision of $release"
-  wait_ready
+  wait_ready_notice
   result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
