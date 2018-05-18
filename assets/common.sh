@@ -43,24 +43,56 @@ setup_kubernetes() {
   fi
 
   kubectl config use-context default
-  kubectl cluster-info
   kubectl version
 }
 
 setup_helm() {
-  helm init -c > /dev/nulll
-  helm version
+  init_server=$(jq -r '.source.helm_init_server // "false"' < $1)
+  tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
+
+  if [ "$init_server" = true ]; then
+    tiller_service_account=$(jq -r '.source.tiller_service_account // "default"' < $1)
+    helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+    wait_for_service_up tiller-deploy 10
+  else
+    export HELM_HOST=$(jq -r '.source.helm_host // ""' < $1)
+    helm init -c --tiller-namespace $tiller_namespace > /dev/null
+  fi
+
+  helm version --tiller-namespace $tiller_namespace
+}
+
+wait_for_service_up() {
+  SERVICE=$1
+  TIMEOUT=$2
+  if [ "$TIMEOUT" -le "0" ]; then
+    echo "Service $SERVICE was not ready in time"
+    exit 1
+  fi
+  RESULT=`kubectl get endpoints --namespace=$tiller_namespace $SERVICE -o jsonpath={.subsets[].addresses[].targetRef.name} 2> /dev/null || true`
+  if [ -z "$RESULT" ]; then
+    sleep 1
+    wait_for_service_up $SERVICE $((--TIMEOUT))
+  fi
 }
 
 setup_repos() {
-  repos=$(jq -r '(try .source.repos[] catch [][]) | (.name+" "+.url)' < $1)
+  repos=$(jq -c '(try .source.repos[] catch [][])' < $1)
+  tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 
   IFS=$'\n'
   for r in $repos; do
-    name=$(echo $r | cut -f1 -d' ')
-    url=$(echo $r | cut -f2 -d' ')
+    name=$(echo $r | jq -r '.name')
+    url=$(echo $r | jq -r '.url')
+    username=$(echo $r | jq -r '.username // ""')
+    password=$(echo $r | jq -r '.password // ""')
+
     echo Installing helm repository $name $url
-    helm repo add $name $url
+    if [[ -n "$username" && -n "$password" ]]; then
+      helm repo add $name $url --tiller-namespace $tiller_namespace --username $username --password $password
+    else
+      helm repo add $name $url --tiller-namespace $tiller_namespace
+    fi
   done
 }
 
@@ -68,6 +100,6 @@ setup_resource() {
   echo "Initializing kubectl..."
   setup_kubernetes $1 $2
   echo "Initializing helm..."
-  setup_helm
+  setup_helm $1
   setup_repos $1
 }
