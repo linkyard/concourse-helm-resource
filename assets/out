@@ -167,6 +167,7 @@ helm_delete() {
   if [ "$debug" = true ]; then
     delete_args+=("--dry-run" "--debug")
   fi
+  delete_args+=("$release")
   logfile="/tmp/log"
   mkdir -p /tmp
   echo "Running command helm ${delete_args[@]} | tee $logfile"
