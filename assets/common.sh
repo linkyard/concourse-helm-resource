@@ -80,7 +80,7 @@ setup_repos() {
   repos=$(jq -c '(try .source.repos[] catch [][])' < $1)
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 
-  IFS=$'\n'
+  local IFS=$'\n'
   for r in $repos; do
     name=$(echo $r | jq -r '.name')
     url=$(echo $r | jq -r '.url')

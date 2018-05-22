@@ -63,6 +63,7 @@ on the cluster.
 * `wait_until_ready`: *Optional.* Set to the number of seconds it should wait until all the resources in
     the chart are ready. (Default: `0` which means don't wait).
 * `recreate_pods`: *Optional.* This flag will cause all pods to be recreated when upgrading. (Default: false)
+* `show_diff`: *Optional.* Show the diff that is applied if upgrading an existing successful release. Will not be used when `devel` is set. (Default: false)
 
 ## Example
 
