@@ -110,11 +110,11 @@ current_revision() {
 }
 
 helm_upgrade() {
-  upgrade_args=("upgrade" "$release" "$chart_full" "--tiller-namespace=$tiller_namespace")
+  upgrade_args=("upgrade" "$release" $chart_full "--tiller-namespace=$tiller_namespace")
   non_diff_args=("--install" "--namespace" "$namespace")
   if [ -n "$values" ]; then
     for value in $values; do
-      upgrade_args+=("-f" "$source/$value")
+      upgrade_args+=("-f" "$source/"$value)
     done
   fi
   overridden_args=()
@@ -167,6 +167,7 @@ helm_delete() {
   if [ "$debug" = true ]; then
     delete_args+=("--dry-run" "--debug")
   fi
+  delete_args+=("$release")
   logfile="/tmp/log"
   mkdir -p /tmp
   echo "Running command helm ${delete_args[@]} | tee $logfile"
