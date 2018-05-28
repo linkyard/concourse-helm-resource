@@ -44,14 +44,14 @@ if [ -z "$chart" ]; then
   exit 1
 fi
 
-if [ -f "$namespace_file" ]; then
+if [ -f "$source/$namespace_file" ]; then
   namespace=`cat $source/$namespace_file`
 elif [ -n "$namespace_file" ]; then
   namespace=$namespace_file
 fi
 
 if [ -n "$release_file" ]; then
-  if [ -f "$release_file" ]; then
+  if [ -f "$source/$release_file" ]; then
     release=`cat $source/$release_file`
   else
     release=$release_file
