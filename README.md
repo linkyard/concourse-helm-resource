@@ -29,7 +29,12 @@ resource_types:
 * `tiller_service_account`: *Optional* Name of the service account that tiller will use (only applies if helm_init_server is true).
 * `repos`: *Optional.* Array of Helm repositories to initialize, each repository is defined as an object with properties `name`, `url` (required) username and password (optional).
 * `helm_host`: *Optional* Address of Tiller. Skips helm discovery process. (only applies if `helm_init_server` is false).
-
+* `tls_enabled`: *Optional* Uses TLS for all interactions with Tiller. (Default: false)
+* `helm_ca`: *Optional* Private CA that is used to issue certificates for Tiller clients and servers (only applies if tls_enabled is true).
+* `helm_cert`: *Optional* Certificate for Client (only applies if tls_enabled is true).
+* `helm_key`: *Optional* Key created for Client when doing a secure Tiller install (only applies if tls_enabled is true).
+* `tiller_cert`: *Optional* Certificate for Tiller (only applies if tls_enabled is true).
+* `tiller_key`: *Optional* Key created for Tiller when doing a secure Tiller install (only applies if tls_enabled is true).
 ## Behavior
 
 ### `check`: Check for new releases

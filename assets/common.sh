@@ -46,20 +46,70 @@ setup_kubernetes() {
   kubectl version
 }
 
+setup_tls() {
+  tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
+  init_server=$(jq -r '.source.helm_init_server // "false"' < $1)
+  if [ "$tls_enabled" = true ]; then
+    helm_ca=$(jq -r '.source.helm_ca // ""' < $payload)
+    helm_key=$(jq -r '.source.helm_key // ""' < $payload)
+    helm_cert=$(jq -r '.source.helm_cert // ""' < $payload)
+    if [ -z "$helm_ca" ]; then
+      echo "invalid payload (missing helm_ca)"
+      exit 1
+    fi
+    if [ -z "$helm_key" ]; then
+      echo "invalid payload (missing helm_key)"
+      exit 1
+    fi
+    if [ -z "$helm_cert" ]; then
+      echo "invalid payload (missing helm_cert)"
+      exit 1
+    fi
+    helm_ca_cert_path="/root/.helm/ca.pem"
+    helm_key_path="/root/.helm/key.pem"
+    helm_cert_path="/root/.helm/cert.pem"
+    echo "$helm_ca" > $helm_ca_cert_path
+    echo "$helm_key" > $helm_key_path
+    echo "$helm_cert" > $helm_cert_path
+  fi
+}
+
 setup_helm() {
   init_server=$(jq -r '.source.helm_init_server // "false"' < $1)
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
-
+  tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
   if [ "$init_server" = true ]; then
     tiller_service_account=$(jq -r '.source.tiller_service_account // "default"' < $1)
-    helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+    if [ "$tls_enabled" = true ]; then
+      tiller_key=$(jq -r '.source.tiller_key // ""' < $payload)
+      tiller_cert=$(jq -r '.source.tiller_cert // ""' < $payload)
+      if [ -z "$tiller_key" ]; then
+        echo "invalid payload (missing tiller_key)"
+        exit 1
+      fi
+      if [ -z "$tiller_cert" ]; then
+        echo "invalid payload (missing tiller_cert)"
+        exit 1
+      fi
+      tiller_key_path="/root/.helm/tiller_key.pem"
+      tiller_cert_path="/root/.helm/tiller_cert.pem"
+      helm_ca_cert_path="/root/.helm/ca.pem"
+      echo "$tiller_key" > $tiller_key_path
+      echo "$tiller_cert" > $tiller_cert_path
+      helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+    else
+      helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+    fi
     wait_for_service_up tiller-deploy 10
   else
     export HELM_HOST=$(jq -r '.source.helm_host // ""' < $1)
     helm init -c --tiller-namespace $tiller_namespace > /dev/null
   fi
-
-  helm version --tiller-namespace $tiller_namespace
+  if [ "$tls_enabled" = true ]; then
+    helm version --tls --tiller-namespace $tiller_namespace
+  else
+    helm version --tiller-namespace $tiller_namespace
+  fi
 }
 
 wait_for_service_up() {
@@ -101,6 +151,7 @@ setup_resource() {
   echo "Initializing kubectl..."
   setup_kubernetes $1 $2
   echo "Initializing helm..."
+  setup_tls $1
   setup_helm $1
   setup_repos $1
 }
