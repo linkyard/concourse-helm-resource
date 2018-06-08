@@ -48,7 +48,6 @@ setup_kubernetes() {
 
 setup_tls() {
   tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
-  init_server=$(jq -r '.source.helm_init_server // "false"' < $1)
   if [ "$tls_enabled" = true ]; then
     helm_ca=$(jq -r '.source.helm_ca // ""' < $payload)
     helm_key=$(jq -r '.source.helm_key // ""' < $payload)
