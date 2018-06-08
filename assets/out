@@ -72,8 +72,6 @@ fi
 
 if [ "$tls_enabled" = true ]; then
   tls_flag="--tls"
-else
-  tls_flag=""
 fi
 
 set_overridden_values() {
