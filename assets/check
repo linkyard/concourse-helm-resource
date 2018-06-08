@@ -28,8 +28,6 @@ fi
 tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
 if [ "$tls_enabled" = true ]; then
   tls_flag="--tls"
-else
-  tls_flag=""
 fi
 
 current_rev=$(jq -r '.version.revision // "0"' < $payload || true)
