@@ -152,7 +152,7 @@ helm_upgrade() {
 
   helm_args=("${upgrade_args[@]}" "${overridden_args[@]}" "${non_diff_args[@]}")
   helm_echo_args=("${upgrade_args[@]}" "${scrubbed_overridden_args[@]}" "${non_diff_args[@]}")
-  helm_diff_args=("${upgrade_args[@]}" "${overridden_args[@]}" "--suppress-secrets")
+  helm_diff_args=("${upgrade_args[@]}" "${overridden_args[@]}" "--suppress-secrets" "--allow-unreleased")
   if [ "$show_diff" = true ] && current_revision > /dev/null && [ "$devel" != true ]; then
     if [ "$tls_enabled" = true ]; then
       echo "helm diff does not support TLS at the present moment."
