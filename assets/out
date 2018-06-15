@@ -110,8 +110,8 @@ set_overridden_values() {
 }
 
 # Find the current revision of a helm release
-current_revision() {
-  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED" | awk '{ print $1 }'
+current_deployed() {
+  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
 }
 
 helm_upgrade() {
@@ -153,7 +153,7 @@ helm_upgrade() {
   helm_args=("${upgrade_args[@]}" "${overridden_args[@]}" "${non_diff_args[@]}")
   helm_echo_args=("${upgrade_args[@]}" "${scrubbed_overridden_args[@]}" "${non_diff_args[@]}")
   helm_diff_args=("${upgrade_args[@]}" "${overridden_args[@]}" "--suppress-secrets" "--allow-unreleased")
-  if [ "$show_diff" = true ] && current_revision > /dev/null && [ "$devel" != true ]; then
+  if [ "$show_diff" = true ] && current_deployed > /dev/null && [ "$devel" != true ]; then
     if [ "$tls_enabled" = true ]; then
       echo "helm diff does not support TLS at the present moment."
     else
@@ -198,9 +198,11 @@ else
   echo "Installing $release"
   helm_upgrade
 
-  revision=$(current_revision)
+  deployed=$(current_deployed)
+  revision=$(echo $deployed | awk '{ print $1 }')
+  chart=$(echo $deployed | awk '{ print $8 }')
   echo "Deployed revision $revision of $release"
   wait_ready_notice
-  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"}]}")"
+  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"},{name: \"chart\", value: \"$chart\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
