@@ -57,7 +57,9 @@ on the cluster.
 * `values`: *Optional.* File containing the values.yaml for the deployment. Supports setting multiple value files using an array.
 * `override_values`: *Optional.* Array of values that can override those defined in values.yaml. Each entry in
   the array is a map containing a key and a value or path. Value is set directly while path reads the contents of
-  the file in that path. A `hide: true` parameter ensures that the value is not logged and instead replaced with `***HIDDEN***`
+  the file in that path. A `hide: true` parameter ensures that the value is not logged and instead replaced with `***HIDDEN***`.
+  A `type: string` parameter makes sure Helm always treats the value as a string (uses the `--set-string` option to Helm; useful if the value varies
+  and may look like a number, eg. if it's a Git commit hash).
 * `version`: *Optional* Chart version to deploy, can be a file or a value. Only applies if `chart` is not a file.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
 * `replace`: *Optional.* Replace deleted release with same name. (Default: false)
@@ -108,4 +110,7 @@ jobs:
       - key: secret
         value: ((my-top-secret-value)) # Pulled from a credentials backend like Vault
         hide: true # Hides value in output
+      - key: image.tag
+        path: version/image_tag # Read value from version/number
+        type: string            # Make sure it's interpreted as a string by Helm (not a number)
 ```

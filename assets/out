@@ -71,7 +71,7 @@ if [ "$tls_enabled" = true ]; then
 fi
 
 set_overridden_values() {
-  while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden; do
+  while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
     if [ -n "$path" ]; then
       value="$(< "$source/$path")"
     fi
@@ -81,9 +81,14 @@ set_overridden_values() {
       scrubbed_value='***HIDDEN***'
     fi
 
-    overridden_args+=(--set "$key=$value")
-    scrubbed_overridden_args+=(--set "$key=$scrubbed_value")
-  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hidden // false) else empty end | tostring + "\u0000"'  < $payload)
+    helm_set_opt='--set'
+    if [ "$type" == 'string' ]; then
+      helm_set_opt='--set-string'
+    fi
+
+    overridden_args+=("$helm_set_opt" "$key=$value")
+    scrubbed_overridden_args+=("$helm_set_opt" "$key=$scrubbed_value")
+  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hidden // false, .type) else empty end | tostring + "\u0000"'  < $payload)
 }
 
 # Find the current revision of a helm release
