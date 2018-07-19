@@ -75,6 +75,26 @@ if [ "$tls_enabled" = true ]; then
   tls_flag="--tls"
 fi
 
+start_local_repo() {
+  if [ -z "$local_repo" ]; then
+    local_repo_full="~/.helm/repository/local"
+  else
+    local_repo_full="$source/$local_repo"
+  fi
+
+  echo "Serving build repo at $local_repo_full"
+  mkdir -p $local_repo_full
+  helm serve --repo-path $local_repo_full &
+  echo $! >/path/to/helm-local-repo-pid.file
+  sleep 5
+  helm repo add build-charts "http://127.0.0.1:8879"
+}
+
+stop_local_repo() {
+  echo "Stopping local helm repo server"
+  kill -n 15 `pidof helm`
+}
+
 set_overridden_values() {
   while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
     if [ -n "$path" ]; then
@@ -226,6 +246,7 @@ wait_ready_notice() {
   fi
 }
 
+start_local_repo()
 
 if [ "$delete" = true ]; then
   helm_delete
@@ -247,3 +268,5 @@ else
   result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"},{name: \"chart\", value: \"$chart\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
+
+stop_local_repo()
