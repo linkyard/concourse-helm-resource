@@ -33,10 +33,6 @@ devel=$(jq -r '.params.devel // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 force=$(jq -r '.params.force // "false"' < $payload)
 show_diff=$(jq -r '.params.show_diff // "false"' < $payload)
-override_values=$(jq -r ".params.override_values[]? | if .key and .value and (.hide // false) == false then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
-override_values_file=$(jq -r ".params.override_values[]? | if .key and .path and (.hide // false) == false then (.key + \"=\" + .path) else empty end" < $payload)
-override_secrets=$(jq -r ".params.override_values[]? | if .key and .value and .hide then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
-override_secrets_file=$(jq -r ".params.override_values[]? | if .key and .path and .hide then (.key + \"=\" + .path) else empty end" < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
 exit_after_diff=$(jq -r '.params.exit_after_diff // "false"' < $payload)
@@ -76,38 +72,24 @@ if [ "$tls_enabled" = true ]; then
 fi
 
 set_overridden_values() {
-  # Get value from given path
-  for overridden_value_file in $override_values_file; do
-    # Get key and value for each overridden file value
-    key=${overridden_value_file%%=*}
-    value=${overridden_value_file#*=}
-    overridden_args+=("--set" "$key=$(cat $source/$value)")
-    scrubbed_overridden_args+=("--set" "$key=$(cat $source/$value)")
-  done
+  while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
+    if [ -n "$path" ]; then
+      value="$(< "$source/$path")"
+    fi
 
-  # Set value directly
-  for overridden_value in $override_values; do
-    overridden_args+=("--set" "$(echo $overridden_value | base64 -d)")
-    scrubbed_overridden_args+=("--set" "$(echo $overridden_value | base64 -d)")
-  done
+    scrubbed_value="$value"
+    if [ "$hidden" != 'false' ]; then
+      scrubbed_value='***HIDDEN***'
+    fi
 
-  # Get value from given path, but hide the value in the echo
-  for overridden_secret_file in $override_secrets_file; do
-    # Get key and value for each overridden file value
-    key=${overridden_secret_file%%=*}
-    value=${overridden_secret_file#*=}
-    overridden_args+=("--set" "$key=$(cat $source/$value)")
-    scrubbed_overridden_args+=("--set" "$key=***HIDDEN***")
-  done
+    helm_set_opt='--set'
+    if [ "$type" == 'string' ]; then
+      helm_set_opt='--set-string'
+    fi
 
-  # Set value directly, but hide the value in the echo
-  for overridden_secret in $override_secrets; do
-    kv=$(echo $overridden_secret | base64 -d)
-    key=${kv%%=*}
-    value=${kv#*=}
-    overridden_args+=("--set" "$kv")
-    scrubbed_overridden_args+=("--set" "$key=***HIDDEN***")
-  done
+    overridden_args+=("$helm_set_opt" "$key=$value")
+    scrubbed_overridden_args+=("$helm_set_opt" "$key=$scrubbed_value")
+  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hidden // false, .type) else empty end | tostring + "\u0000"'  < $payload)
 }
 
 # Find the current revision of a helm release
