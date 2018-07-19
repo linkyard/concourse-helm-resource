@@ -122,6 +122,8 @@ current_deployed() {
 }
 
 helm_upgrade() {
+  start_local_repo()
+
   upgrade_args=("upgrade" "$release" $chart_full "--tiller-namespace=$tiller_namespace")
   non_diff_args=("--install" "--namespace" "$namespace")
   if [ -n "$values" ]; then
@@ -175,11 +177,17 @@ helm_upgrade() {
     echo "Running command helm ${helm_echo_args[@]} | tee $logfile"
     helm "${helm_args[@]}" $tls_flag | tee "$logfile"
   fi
+
+  stop_local_repo()
 }
 
 helm_delete() {
+
+  start_local_repo()
+
   if [ -z "$release" ]; then
     echo "invalid payload (missing release if delete=true)"
+    stop_local_repo()
     exit 1
   fi
   echo "Deleting the release $release..."
@@ -197,6 +205,8 @@ helm_delete() {
   mkdir -p /tmp
   echo "Running command helm ${delete_args[@]} | tee $logfile"
   helm "${delete_args[@]}" $tls_flag | tee $logfile
+
+  stop_local_repo()
 }
 
 helm_test() {
@@ -246,8 +256,6 @@ wait_ready_notice() {
   fi
 }
 
-start_local_repo()
-
 if [ "$delete" = true ]; then
   helm_delete
   result="$(jq -n "{version:{release:\"$release\", deleted: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
@@ -268,5 +276,3 @@ else
   result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"},{name: \"chart\", value: \"$chart\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
-
-stop_local_repo()
