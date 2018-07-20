@@ -85,7 +85,6 @@ start_local_repo() {
   echo "Serving build repo at $local_repo_full"
   mkdir -p $local_repo_full
   helm serve --repo-path $local_repo_full &
-  echo $! >/path/to/helm-local-repo-pid.file
   sleep 5
   helm repo add build-charts "http://127.0.0.1:8879"
 }
