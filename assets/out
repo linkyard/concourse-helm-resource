@@ -122,7 +122,7 @@ current_deployed() {
 }
 
 helm_upgrade() {
-  start_local_repo()
+  start_local_repo
 
   upgrade_args=("upgrade" "$release" $chart_full "--tiller-namespace=$tiller_namespace")
   non_diff_args=("--install" "--namespace" "$namespace")
@@ -178,7 +178,7 @@ helm_upgrade() {
     helm "${helm_args[@]}" $tls_flag | tee "$logfile"
   fi
 
-  stop_local_repo()
+  stop_local_repo
 }
 
 helm_delete() {
@@ -187,7 +187,7 @@ helm_delete() {
 
   if [ -z "$release" ]; then
     echo "invalid payload (missing release if delete=true)"
-    stop_local_repo()
+    stop_local_repo
     exit 1
   fi
   echo "Deleting the release $release..."
@@ -206,7 +206,7 @@ helm_delete() {
   echo "Running command helm ${delete_args[@]} | tee $logfile"
   helm "${delete_args[@]}" $tls_flag | tee $logfile
 
-  stop_local_repo()
+  stop_local_repo
 }
 
 helm_test() {
