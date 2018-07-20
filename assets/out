@@ -20,6 +20,7 @@ echo "Resource setup successful."
 # Parse parameters
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
+local_repo=$(jq -r '.source.local_repo // ""' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
 version=$(jq -r '.params.version // ""' < $payload)
 namespace_file=$(jq -r '.params.namespace // ""' < $payload)
