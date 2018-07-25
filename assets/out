@@ -89,7 +89,7 @@ set_overridden_values() {
 
     overridden_args+=("$helm_set_opt" "$key=$value")
     scrubbed_overridden_args+=("$helm_set_opt" "$key=$scrubbed_value")
-  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hidden // false, .type) else empty end | tostring + "\u0000"'  < $payload)
+  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hide // false, .type) else empty end | tostring + "\u0000"'  < $payload)
 }
 
 # Find the current revision of a helm release
