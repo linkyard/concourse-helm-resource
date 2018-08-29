@@ -30,6 +30,7 @@ debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
 test=$(jq -r '.params.test // "false"' < $payload)
+purge=$(jq -r '.params.purge // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 force=$(jq -r '.params.force // "false"' < $payload)
@@ -162,10 +163,15 @@ helm_delete() {
     exit 1
   fi
   echo "Deleting the release $release..."
-  delete_args=("delete" "--purge" "--tiller-namespace=$tiller_namespace")
+  delete_args=("delete" "--tiller-namespace=$tiller_namespace")
   if [ "$debug" = true ]; then
     delete_args+=("--dry-run" "--debug")
   fi
+  
+  if [ "$purge" = true ]; then
+    delete_args+=("--purge")
+  fi
+
   delete_args+=("$release")
   logfile="/tmp/log"
   mkdir -p /tmp
