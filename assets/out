@@ -29,6 +29,7 @@ wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
+test=$(jq -r '.params.test // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 force=$(jq -r '.params.force // "false"' < $payload)
@@ -38,8 +39,10 @@ tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
 exit_after_diff=$(jq -r '.params.exit_after_diff // "false"' < $payload)
 
 if [ -z "$chart" ]; then
-  echo "invalid payload (missing chart)"
-  exit 1
+  if [[ "$test" == "false" && "$delete" == "false" ]]; then
+    echo "invalid payload (missing chart)"
+    exit 1
+  fi
 fi
 
 if [ -f "$source/$namespace_file" ]; then
@@ -159,7 +162,7 @@ helm_delete() {
     exit 1
   fi
   echo "Deleting the release $release..."
-  delete_args=("delete" "--tiller-namespace=$tiller_namespace")
+  delete_args=("delete" "--purge" "--tiller-namespace=$tiller_namespace")
   if [ "$debug" = true ]; then
     delete_args+=("--dry-run" "--debug")
   fi
@@ -168,6 +171,46 @@ helm_delete() {
   mkdir -p /tmp
   echo "Running command helm ${delete_args[@]} | tee $logfile"
   helm "${delete_args[@]}" $tls_flag | tee $logfile
+}
+
+helm_test() {
+  if [ -z "$release" ]; then
+    echo "invalid payload (missing release if test=true)"
+    exit 1
+  fi
+  echo "Testing the release $release..."
+  test_args=("test" "--tiller-namespace=$tiller_namespace")
+  if [ "$debug" = true ]; then
+    test_args+=("--dry-run" "--debug")
+  fi
+  test_args+=("$release")
+  logfile="/tmp/log"
+  mkdir -p /tmp
+  echo "Running command helm ${test_args[@]} | tee $logfile"
+  result=$(helm "${test_args[@]}" $tls_flag || true)
+  
+  if [[ $result = *"FAILED"* ]]; then
+    echo ""
+    echo "#### FAILED TEST OUTPUT ####" | tee $logfile
+    $_cmd | tee $logfile
+    echo "#### FAILED TEST OUTPUT ####" | tee $logfile
+    echo ""
+
+    _cmd=$(echo $result | awk -F '`' '{print $2};')
+    cleanup=$(echo $_cmd | sed 's/logs/delete pod/g')
+    $cleanup | tee $logfile
+
+    exit 1
+  elif [[ $result = *"ERROR"* ]]; then
+    echo $result | tee $logfile
+    exit 1
+  elif [[ $result = *"PASSED"* ]]; then
+    echo $result | tee $logfile
+    kubectl delete pod $(echo $result | awk '{print $2};') -n $namespace | tee $logfile
+  else
+    echo "Unhandled"
+    exit 1
+  fi
 }
 
 wait_ready_notice() {
@@ -180,6 +223,10 @@ wait_ready_notice() {
 if [ "$delete" = true ]; then
   helm_delete
   result="$(jq -n "{version:{release:\"$release\", deleted: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
+  echo "$result" | jq -s add  >&3
+elif [ "$test" = true ]; then
+  helm_test
+  result="$(jq -n "{version:{release:\"$release\", tested: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
   echo "$result" | jq -s add  >&3
 else
   echo "Installing $release"
