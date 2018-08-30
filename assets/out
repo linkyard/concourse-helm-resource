@@ -196,13 +196,14 @@ helm_test() {
   result=$(helm "${test_args[@]}" $tls_flag || true)
   
   if [[ $result = *"FAILED"* ]]; then
+    _cmd=$(echo $result | awk -F '`' '{print $2};')
+    
     echo ""
     echo "#### FAILED TEST OUTPUT ####" | tee $logfile
     $_cmd | tee $logfile
     echo "#### FAILED TEST OUTPUT ####" | tee $logfile
     echo ""
 
-    _cmd=$(echo $result | awk -F '`' '{print $2};')
     cleanup=$(echo $_cmd | sed 's/logs/delete pod/g')
     $cleanup | tee $logfile
 
