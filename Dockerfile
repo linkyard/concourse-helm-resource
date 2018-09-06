@@ -1,7 +1,7 @@
 FROM linkyard/docker-helm:2.10.0
 LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
-RUN apk add --update --upgrade --no-cache jq bash nodejs curl yarn
+RUN apk add --update --upgrade --no-cache jq bash curl
 
 ARG KUBERNETES_VERSION=1.10.4
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl; \
