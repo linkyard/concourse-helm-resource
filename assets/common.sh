@@ -142,8 +142,9 @@ setup_repos() {
     else
       helm repo add $name $url --tiller-namespace $tiller_namespace
     fi
-    helm repo update
   done
+
+  helm repo update
 }
 
 setup_resource() {
