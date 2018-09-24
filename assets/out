@@ -98,7 +98,7 @@ set_overridden_values() {
 
 # Find the current revision of a helm release
 current_deployed() {
-  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
+  helm tiller run $tiller_namespace -- helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
 }
 
 helm_upgrade() {
@@ -145,7 +145,7 @@ helm_upgrade() {
       echo "helm diff does not support TLS at the present moment."
     else
       echo "Release diff:"
-      helm diff "${helm_diff_args[@]}" | tee "$logfile"
+      helm tiller run $tiller_namespace -- helm diff "${helm_diff_args[@]}" | tee "$logfile"
     fi
   fi
 
@@ -153,7 +153,7 @@ helm_upgrade() {
     echo "Exiting after diff"
   else
     echo "Running command helm ${helm_echo_args[@]} | tee $logfile"
-    helm "${helm_args[@]}" $tls_flag | tee "$logfile"
+    helm tiller run $tiller_namespace -- helm "${helm_args[@]}" $tls_flag | tee "$logfile"
   fi
 }
 
@@ -176,7 +176,7 @@ helm_delete() {
   logfile="/tmp/log"
   mkdir -p /tmp
   echo "Running command helm ${delete_args[@]} | tee $logfile"
-  helm "${delete_args[@]}" $tls_flag | tee $logfile
+  helm tiller run $tiller_namespace -- helm "${delete_args[@]}" $tls_flag | tee $logfile
 }
 
 helm_test() {
@@ -193,7 +193,7 @@ helm_test() {
   logfile="/tmp/log"
   mkdir -p /tmp
   echo "Running command helm ${test_args[@]} | tee $logfile"
-  result=$(helm "${test_args[@]}" $tls_flag || true)
+  result=$(helm tiller run $tiller_namespace -- helm "${test_args[@]}" $tls_flag || true)
   
   if [[ $result = *"FAILED"* ]]; then
     _cmd=$(echo $result | awk -F '`' '{print $2};')
