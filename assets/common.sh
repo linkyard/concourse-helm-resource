@@ -95,19 +95,19 @@ setup_helm() {
       helm_ca_cert_path="/root/.helm/ca.pem"
       echo "$tiller_key" > $tiller_key_path
       echo "$tiller_cert" > $tiller_cert_path
-      helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+      helm tiller run $tiller_namespace -- helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
     else
-      helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
+      helm tiller run $tiller_namespace -- helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --upgrade
     fi
     wait_for_service_up tiller-deploy 10
   else
     export HELM_HOST=$(jq -r '.source.helm_host // ""' < $1)
-    helm init -c --tiller-namespace $tiller_namespace > /dev/null
+    helm tiller run $tiller_namespace -- helm init -c --tiller-namespace $tiller_namespace > /dev/null
   fi
   if [ "$tls_enabled" = true ]; then
-    helm version --tls --tiller-namespace $tiller_namespace
+    helm tiller run $tiller_namespace -- helm version --tls --tiller-namespace $tiller_namespace
   else
-    helm version --tiller-namespace $tiller_namespace
+    helm tiller run $tiller_namespace -- helm version --tiller-namespace $tiller_namespace
   fi
 }
 
@@ -138,13 +138,13 @@ setup_repos() {
 
     echo Installing helm repository $name $url
     if [[ -n "$username" && -n "$password" ]]; then
-      helm repo add $name $url --tiller-namespace $tiller_namespace --username $username --password $password
+      helm tiller run $tiller_namespace -- helm repo add $name $url --tiller-namespace $tiller_namespace --username $username --password $password
     else
-      helm repo add $name $url --tiller-namespace $tiller_namespace
+      helm tiller run $tiller_namespace -- helm repo add $name $url --tiller-namespace $tiller_namespace
     fi
   done
 
-  helm repo update
+  helm tiller run $tiller_namespace -- helm repo update
 }
 
 setup_resource() {
