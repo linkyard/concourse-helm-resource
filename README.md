@@ -74,6 +74,7 @@ on the cluster.
 * `recreate_pods`: *Optional.* This flag will cause all pods to be recreated when upgrading. (Default: false)
 * `show_diff`: *Optional.* Show the diff that is applied if upgrading an existing successful release. Will not be used when `devel` is set. (Default: false)
 * `exit_after_diff`: *Optional.* Show the diff but don't actually install/upgrade. (Default: false)
+* `reuse_values`: *Optional.* When upgrading, reuse the last release's values. (Default: false)
 
 ## Example
 
