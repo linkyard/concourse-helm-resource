@@ -38,6 +38,7 @@ show_diff=$(jq -r '.params.show_diff // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
 exit_after_diff=$(jq -r '.params.exit_after_diff // "false"' < $payload)
+reuse_values=$(jq -r '.params.reuse_values // "false"' < $payload)
 
 if [ -z "$chart" ]; then
   if [[ "$test" == "false" && "$delete" == "false" ]]; then
@@ -134,6 +135,11 @@ helm_upgrade() {
   if [ "$force" = true ]; then
     non_diff_args+=("--force")
   fi
+  if [ "$reuse_values" = true ]; then
+    upgrade_args+=("--reuse-values")
+    non_diff_args+=("--reuse-values")
+  fi
+
   logfile="/tmp/log"
   mkdir -p /tmp
 
