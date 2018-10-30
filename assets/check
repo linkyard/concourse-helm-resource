@@ -35,13 +35,13 @@ current_rev=$(jq -r '.version.revision // "0"' < $payload || true)
 
 if [ "$current_rev" -eq "0" ]; then
   # Empty => return the current
-  helm tiller run $tiller_namespace -- helm history $release $tls_flag --tiller-namespace $tiller_namespace | tail -n 1 | while read -r line; do
+  helm tiller run $tiller_namespace -- helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
     revision=$(echo $line | awk '{ print $1 }')
     echo "$revision"
   done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
 else
   # All versions equal and newer
-  helm tiller run $tiller_namespace -- helm history $release $tls_flag --tiller-namespace $tiller_namespace | tail -n +2 | while read -r line; do
+  helm tiller run $tiller_namespace -- helm history $tls_flag --tiller-namespace $tiller_namespace  --max 20 $release | tail -n +2 | while read -r line; do
     revision=$(echo $line | awk '{ print $1 }')
     if [ -z "$current_rev" ] || [ "$revision" -ge "$current_rev" ]; then
       echo "$revision"
