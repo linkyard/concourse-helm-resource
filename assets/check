@@ -17,7 +17,6 @@ setup_resource $payload
 echo "Resource setup successful."
 
 # Parse parameters
-tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 release=$(jq -r '.source.release // ""' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
