@@ -1,6 +1,48 @@
 #!/bin/bash
 set -e
 
+generate_aws_kubeconfig() {
+  # Optional. Use the AWS EKS authenticator
+  local use_aws_iam_authenticator
+  use_aws_iam_authenticator="$(jq -r '.source.use_aws_iam_authenticator // ""' < "$payload")"
+  local aws_eks_cluster_name
+  aws_eks_cluster_name="$(jq -r '.source.aws_eks_cluster_name // ""' < "$payload")"
+  if [[ "$use_aws_iam_authenticator" == "true" ]]; then
+    if [ -z "$aws_eks_cluster_name" ]; then
+      echo 'You must specify aws_eks_cluster_name when using aws_iam_authenticator.'
+      exit 1
+    fi
+    local kubeconfig_file_aws
+    kubeconfig_file_aws="$(mktemp "$TMPDIR/kubernetes-resource-kubeconfig-aws.XXXXXX")"
+    cat <<EOF > "$kubeconfig_file_aws"
+users:
+- name: admin
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      args:
+      - token
+      - -i
+      - ${aws_eks_cluster_name}
+      command: aws-iam-authenticator
+      env: null
+EOF
+    # Merge two kubeconfig files
+    local tmpfile
+    tmpfile="$(mktemp)"
+    local kubeconfig_file
+    kubeconfig_file="/root/.kube/config"
+    #kubectl config view --flatten > "$tmpfile"
+    KUBECONFIG="$kubeconfig_file:$kubeconfig_file_aws" kubectl config view --flatten > "$tmpfile"
+    cat "$tmpfile"
+
+    #remove old user data before merging
+    kubectl config unset users
+
+    cat "$tmpfile" > $kubeconfig_file
+  fi
+}
+
 setup_kubernetes() {
   payload=$1
   source=$2
@@ -17,17 +59,20 @@ setup_kubernetes() {
     admin_cert=$(jq -r '.source.admin_cert // ""' < $payload)
     token=$(jq -r '.source.token // ""' < $payload)
     token_path=$(jq -r '.params.token_path // ""' < $payload)
+    use_aws_iam_authenticator="$(jq -r '.source.use_aws_iam_authenticator // ""' < "$payload")"
+
 
     mkdir -p /root/.kube
 
     ca_path="/root/.kube/ca.pem"
     echo "$cluster_ca" | base64 -d > $ca_path
     kubectl config set-cluster default --server=$cluster_url --certificate-authority=$ca_path
-
     if [ -f "$source/$token_path" ]; then
       kubectl config set-credentials admin --token=$(cat $source/$token_path)
     elif [ ! -z "$token" ]; then
       kubectl config set-credentials admin --token=$token
+    elif [ ! -z "$use_aws_iam_authenticator" ]; then
+      generate_aws_kubeconfig
     else
       key_path="/root/.kube/key.pem"
       cert_path="/root/.kube/cert.pem"
@@ -35,13 +80,11 @@ setup_kubernetes() {
       echo "$admin_cert" | base64 -d > $cert_path
       kubectl config set-credentials admin --client-certificate=$cert_path --client-key=$key_path
     fi
-
     kubectl config set-context default --cluster=default --user=admin
   else
     kubectl config set-cluster default --server=$cluster_url
     kubectl config set-context default --cluster=default
   fi
-
   kubectl config use-context default
   kubectl version
 }
