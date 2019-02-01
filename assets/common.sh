@@ -34,7 +34,6 @@ EOF
     kubeconfig_file="/root/.kube/config"
     #kubectl config view --flatten > "$tmpfile"
     KUBECONFIG="$kubeconfig_file:$kubeconfig_file_aws" kubectl config view --flatten > "$tmpfile"
-    cat "$tmpfile"
 
     #remove old user data before merging
     kubectl config unset users
