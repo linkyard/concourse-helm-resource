@@ -128,9 +128,20 @@ wait_for_service_up() {
 
 setup_repos() {
   repos=$(jq -c '(try .source.repos[] catch [][])' < $1)
+  plugins=$(jq -c '(try .source.plugins[] catch [][])' < $1)
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
 
   local IFS=$'\n'
+
+  for pl in $plugins; do
+    plurl=$(echo $pl | jq -cr '.url')
+    plversion=$(echo $pl | jq -cr '.version // ""')
+    if [ -n "$plversison" ]; then
+      plversionflag="--version $plversion"
+    fi
+    helm plugin install $plurl $plversionflag
+  done
+
   for r in $repos; do
     name=$(echo $r | jq -r '.name')
     url=$(echo $r | jq -r '.url')
