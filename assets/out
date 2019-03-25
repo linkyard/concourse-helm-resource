@@ -39,6 +39,8 @@ recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
 exit_after_diff=$(jq -r '.params.exit_after_diff // "false"' < $payload)
 reuse_values=$(jq -r '.params.reuse_values // "false"' < $payload)
+wait=$(jq -r '.params.wait // 0' < $payload)
+check_is_ready=$(jq -r '.params.check_is_ready // "false"' < $payload)
 
 if [ -z "$chart" ]; then
   if [[ "$test" == "false" && "$delete" == "false" ]]; then
@@ -116,6 +118,11 @@ helm_upgrade() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
     non_diff_args+=("--wait" "--timeout" "$wait_until_ready")
   fi
+
+  if [ "$check_is_ready" = true ] && [ "$wait_until_ready" -lt "1" ]; then
+      non_diff_args+=("--wait")
+  fi
+
   if [ "$debug" = true ]; then
     upgrade_args+=("--debug")
     non_diff_args+=("--dry-run")
@@ -161,6 +168,11 @@ helm_upgrade() {
     echo "Running command helm ${helm_echo_args[@]} | tee $logfile"
     helm "${helm_args[@]}" $tls_flag | tee "$logfile"
   fi
+
+  if [ -n "$wait" ] && [ "$wait" -gt "0" ]; then
+    echo "Waiting for $wait Seconds"
+    sleep $wait
+  fi
 }
 
 helm_delete() {
@@ -173,7 +185,7 @@ helm_delete() {
   if [ "$debug" = true ]; then
     delete_args+=("--dry-run" "--debug")
   fi
-  
+
   if [ "$purge" = true ]; then
     delete_args+=("--purge")
   fi
@@ -200,10 +212,10 @@ helm_test() {
   mkdir -p /tmp
   echo "Running command helm ${test_args[@]} | tee $logfile"
   result=$(helm "${test_args[@]}" $tls_flag || true)
-  
+
   if [[ $result = *"FAILED"* ]]; then
     _cmd=$(echo $result | awk -F '`' '{print $2};')
-    
+
     echo ""
     echo "#### FAILED TEST OUTPUT ####" | tee $logfile
     $_cmd | tee $logfile
@@ -219,7 +231,9 @@ helm_test() {
     exit 1
   elif [[ $result = *"PASSED"* ]]; then
     echo $result | tee $logfile
-    kubectl delete pod $(echo $result | awk '{print $2};') -n $namespace | tee $logfile
+    TEST_PODS=$(echo $result | awk '{for(i=1;i<=NF;i++)if($i=="RUNNING:")print $(i+1)}' | sed 's/^/ /' )
+    #kubectl delete pod $(echo $result | awk '{print $2};') -n $namespace | tee $logfile
+    kubectl delete pod $TEST_PODS -n $namespace | tee $logfile
   else
     echo "Unhandled"
     exit 1
