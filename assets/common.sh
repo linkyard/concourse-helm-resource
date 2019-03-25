@@ -78,6 +78,13 @@ setup_helm() {
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
   tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
   history_max=$(jq -r '.source.helm_history_max // "0"' < $1)
+  stable_repo=$(jq -r '.source.stable_repo // ""' < $payload)
+
+  if [ -n "$stable_repo" ]; then
+    echo "Stable Repo URL : ${stable_repo}"
+    stable_repo="--stable-repo-url=${stable_repo}"
+  fi
+
   if [ "$init_server" = true ]; then
     tiller_service_account=$(jq -r '.source.tiller_service_account // "default"' < $1)
     if [ "$tls_enabled" = true ]; then
@@ -96,14 +103,14 @@ setup_helm() {
       helm_ca_cert_path="/root/.helm/ca.pem"
       echo "$tiller_key" > $tiller_key_path
       echo "$tiller_cert" > $tiller_cert_path
-      helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --history-max=$history_max --upgrade
+      helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --history-max=$history_max $stable_repo --upgrade
     else
-      helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --history-max=$history_max --upgrade
+      helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account --history-max=$history_max $stable_repo --upgrade
     fi
     wait_for_service_up tiller-deploy 10
   else
     export HELM_HOST=$(jq -r '.source.helm_host // ""' < $1)
-    helm init -c --tiller-namespace $tiller_namespace > /dev/null
+    helm init -c --tiller-namespace $tiller_namespace $stable_repo > /dev/null
   fi
   if [ "$tls_enabled" = true ]; then
     helm version --tls --tiller-namespace $tiller_namespace
