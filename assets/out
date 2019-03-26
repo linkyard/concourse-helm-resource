@@ -232,7 +232,6 @@ helm_test() {
   elif [[ $result = *"PASSED"* ]]; then
     echo $result | tee $logfile
     TEST_PODS=$(echo $result | awk '{for(i=1;i<=NF;i++)if($i=="RUNNING:")print $(i+1)}' | sed 's/^/ /' )
-    #kubectl delete pod $(echo $result | awk '{print $2};') -n $namespace | tee $logfile
     kubectl delete pod $TEST_PODS -n $namespace | tee $logfile
   else
     echo "Unhandled"
