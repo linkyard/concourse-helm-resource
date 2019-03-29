@@ -22,25 +22,45 @@ namespace=$(jq -r '.source.namespace // "default"' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
 version=$(jq -r '.params.version // ""' < $payload)
+namespace_file=$(jq -r '.params.namespace // ""' < $payload)
 release_file=$(jq -r '.params.release // ""' < $payload)
 values=$(jq -r '.params.values // "" | if type == "array" then .[] else . end' < $payload)
 wait_until_ready=$(jq -r '.params.wait_until_ready // 0' < $payload)
 debug=$(jq -r '.params.debug // "false"' < $payload)
 replace=$(jq -r '.params.replace // "false"' < $payload)
 delete=$(jq -r '.params.delete // "false"' < $payload)
+test=$(jq -r '.params.test // "false"' < $payload)
+purge=$(jq -r '.params.purge // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
-override_values=$(jq -r ".params.override_values[]? | if .key and .value and (.hide // false) == false then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
-override_values_file=$(jq -r ".params.override_values[]? | if .key and .path and (.hide // false) == false then (.key + \"=\" + .path) else empty end" < $payload)
-override_secrets=$(jq -r ".params.override_values[]? | if .key and .value and .hide then (.key + \"=\" + .value) else empty end | @base64"  < $payload)
-override_secrets_file=$(jq -r ".params.override_values[]? | if .key and .path and .hide then (.key + \"=\" + .path) else empty end" < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
+force=$(jq -r '.params.force // "false"' < $payload)
+show_diff=$(jq -r '.params.show_diff // "false"' < $payload)
+recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
+tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
+exit_after_diff=$(jq -r '.params.exit_after_diff // "false"' < $payload)
+reuse_values=$(jq -r '.params.reuse_values // "false"' < $payload)
+wait=$(jq -r '.params.wait // 0' < $payload)
+check_is_ready=$(jq -r '.params.check_is_ready // "false"' < $payload)
 
 if [ -z "$chart" ]; then
-  echo "invalid payload (missing chart)"
-  exit 1
+  if [[ "$test" == "false" && "$delete" == "false" ]]; then
+    echo "invalid payload (missing chart)"
+    exit 1
+  fi
 fi
+
+if [ -f "$source/$namespace_file" ]; then
+  namespace=`cat $source/$namespace_file`
+elif [ -n "$namespace_file" ]; then
+  namespace=$namespace_file
+fi
+
 if [ -n "$release_file" ]; then
-  release=`cat $source/$release_file`
+  if [ -f "$source/$release_file" ]; then
+    release=`cat $source/$release_file`
+  else
+    release=$release_file
+  fi
 else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
@@ -54,141 +74,105 @@ else
   chart_full="$chart"
 fi
 
-is_deployed() {
-  if [ -n "$1" ]; then
-    set +e
-    set +o pipefail
-    helm history --tiller-namespace $tiller_namespace $1 2>&1 | grep "DEPLOYED" > /dev/null
-    if [ $? = 0 ]; then
-      # exists
-      echo true
-    else
-      # does not exist
-      echo false
+if [ "$tls_enabled" = true ]; then
+  tls_flag="--tls"
+fi
+
+set_overridden_values() {
+  while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
+    if [ -n "$path" ]; then
+      value="$(< "$source/$path")"
     fi
-    set -o pipefail
-    set -e
-  else
-    echo false
-  fi
-}
 
-set_overriden_values() {
-  # Get value from given path
-  for overriden_value_file in $override_values_file; do
-    # Get key and value for each overridden file value
-    key=${overriden_value_file%%=*}
-    value=${overriden_value_file#*=}
-    helm_cmd="$helm_cmd --set '$key=$(cat $source/$value)'"
-    helm_echo="$helm_echo --set '$key=$(cat $source/$value)'"
-  done
+    scrubbed_value="$value"
+    if [ "$hidden" != 'false' ]; then
+      scrubbed_value='***HIDDEN***'
+    fi
 
-  # Set value directly
-  for overriden_value in $override_values; do
-    helm_cmd="$helm_cmd --set '$(echo $overriden_value | base64 -d)'"
-    helm_echo="$helm_echo --set '$(echo $overriden_value | base64 -d)'"
-  done
+    helm_set_opt='--set'
+    if [ "$type" == 'string' ]; then
+      helm_set_opt='--set-string'
+    fi
 
-  # Get value from given path, but hide the value in the echo
-  for overriden_secret_file in $override_secrets_file; do
-    # Get key and value for each overridden file value
-    key=${overriden_secret_file%%=*}
-    value=${overriden_secret_file#*=}
-    helm_cmd="$helm_cmd --set '$key=$(cat $source/$value)'"
-    helm_echo="$helm_echo --set $key=***HIDDEN***"
-  done
-
-  # Set value directly, but hide the value in the echo
-  for overriden_secret in $override_secrets; do
-    kv=$(echo $overriden_secret | base64 -d)
-    key=${kv%%=*}
-    value=${kv#*=}
-    helm_cmd="$helm_cmd --set '$kv'"
-    helm_echo="$helm_echo --set '$key=***HIDDEN***'"
-  done
-}
-
-helm_install() {
-  helm_cmd="helm install"
-  helm_echo="helm install"
-  helm_cmd="$helm_cmd --namespace $namespace --tiller-namespace $tiller_namespace"
-  helm_echo="$helm_echo --namespace $namespace --tiller-namespace $tiller_namespace"
-  if [ -n "$release" ]; then
-    helm_cmd="$helm_cmd -n $release"
-    helm_echo="$helm_echo -n $release"
-  fi
-  if [ -n "$values" ]; then
-    for value in $values; do
-      helm_cmd="$helm_cmd -f $source/$value"
-      helm_echo="$helm_echo -f $source/$value"
-    done
-  fi
-  set_overriden_values
-  if [ "$replace" = true ]; then
-    helm_cmd="$helm_cmd --replace"
-    helm_echo="$helm_echo --replace"
-  fi
-  if [ "$debug" = true ]; then
-    helm_cmd="$helm_cmd --dry-run --debug"
-    helm_echo="$helm_echo --dry-run --debug"
-  fi
-  if [ "$devel" = true ]; then
-    helm_cmd="$helm_cmd --devel"
-    helm_echo="$helm_echo --devel"
-  fi
-  if [ -n "$version" ]; then
-    helm_cmd="$helm_cmd --version $version"
-    helm_echo="$helm_echo --version $version"
-  fi
-  logfile="/tmp/log"
-  mkdir -p /tmp
-  helm_cmd="$helm_cmd $chart_full | tee $logfile"
-  helm_echo="$helm_echo $chart_full | tee $logfile"
-  echo "Running command $helm_echo"
-  eval "$helm_cmd"
-
-  # Find the name of the release
-  release=`cat $logfile | grep "NAME:" | awk '{print $2}'`
+    overridden_args+=("$helm_set_opt" "$key=$value")
+    scrubbed_overridden_args+=("$helm_set_opt" "$key=$scrubbed_value")
+  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hide // false, .type) else empty end | tostring + "\u0000"'  < $payload)
 }
 
 # Find the current revision of a helm release
-current_revision() {
-  revision=`helm history --tiller-namespace $tiller_namespace $release | grep "DEPLOYED" | awk '{print $1}'`
-  echo $revision
+current_deployed() {
+  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
 }
 
 helm_upgrade() {
-  helm_cmd="helm upgrade --tiller-namespace $tiller_namespace $release"
-  helm_echo="helm upgrade --tiller-namespace $tiller_namespace $release"
+  upgrade_args=("upgrade" "$release" $chart_full "--tiller-namespace=$tiller_namespace")
+  non_diff_args=("--install" "--namespace" "$namespace")
   if [ -n "$values" ]; then
     for value in $values; do
-      helm_cmd="$helm_cmd -f $source/$value"
-      helm_echo="$helm_echo -f $source/$value"
+      upgrade_args+=("-f" "$source/"$value)
     done
   fi
-  set_overriden_values
+  overridden_args=()
+  scrubbed_overridden_args=()
+  set_overridden_values
+  if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
+    non_diff_args+=("--wait" "--timeout" "$wait_until_ready")
+  fi
+
+  if [ "$check_is_ready" = true ] && [ "$wait_until_ready" -lt "1" ]; then
+      non_diff_args+=("--wait")
+  fi
+
   if [ "$debug" = true ]; then
-    helm_cmd="$helm_cmd --dry-run --debug"
-    helm_echo="$helm_echo --dry-run --debug"
+    upgrade_args+=("--debug")
+    non_diff_args+=("--dry-run")
   fi
   if [ "$devel" = true ]; then
-    helm_cmd="$helm_cmd --devel"
-    helm_echo="$helm_echo --devel"
+    non_diff_args+=("--devel")
   fi
   if [ -n "$version" ]; then
-    helm_cmd="$helm_cmd --version $version"
-    helm_echo="$helm_echo --version $version"
+    if [ -f "$source/$version" ]; then
+      version=$(cat $source/$version)
+    fi
+    upgrade_args+=("--version" "$version")
   fi
   if [ "$recreate_pods" = true ]; then
-    helm_cmd="$helm_cmd --recreate-pods"
-    helm_echo="$helm_echo --recreate-pods"
+    non_diff_args+=("--recreate-pods")
   fi
+  if [ "$force" = true ]; then
+    non_diff_args+=("--force")
+  fi
+  if [ "$reuse_values" = true ]; then
+    upgrade_args+=("--reuse-values")
+    non_diff_args+=("--reuse-values")
+  fi
+
   logfile="/tmp/log"
   mkdir -p /tmp
-  helm_cmd="$helm_cmd $chart_full | tee $logfile"
-  helm_echo="$helm_echo $chart_full | tee $logfile"
-  echo "Running command $helm_echo"
-  eval "$helm_cmd"
+
+  helm_args=("${upgrade_args[@]}" "${overridden_args[@]}" "${non_diff_args[@]}")
+  helm_echo_args=("${upgrade_args[@]}" "${scrubbed_overridden_args[@]}" "${non_diff_args[@]}")
+  helm_diff_args=("${upgrade_args[@]}" "${overridden_args[@]}" "--suppress-secrets" "--allow-unreleased")
+  if [ "$show_diff" = true ] && current_deployed > /dev/null && [ "$devel" != true ]; then
+    if [ "$tls_enabled" = true ]; then
+      echo "helm diff does not support TLS at the present moment."
+    else
+      echo "Release diff:"
+      helm diff "${helm_diff_args[@]}" | tee "$logfile"
+    fi
+  fi
+
+  if [ "$exit_after_diff" = true ]; then
+    echo "Exiting after diff"
+  else
+    echo "Running command helm ${helm_echo_args[@]} | tee $logfile"
+    helm "${helm_args[@]}" $tls_flag | tee "$logfile"
+  fi
+
+  if [ -n "$wait" ] && [ "$wait" -gt "0" ]; then
+    echo "Waiting for $wait Seconds"
+    sleep $wait
+  fi
 }
 
 helm_delete() {
@@ -197,24 +181,67 @@ helm_delete() {
     exit 1
   fi
   echo "Deleting the release $release..."
-  helm_cmd="helm delete --tiller-namespace $tiller_namespace"
-  helm_echo="helm delete --tiller-namespace $tiller_namespace"
+  delete_args=("delete" "--tiller-namespace=$tiller_namespace")
   if [ "$debug" = true ]; then
-    helm_cmd="$helm_cmd --dry-run --debug"
-    helm_echo="$helm_echo --dry-run --debug"
+    delete_args+=("--dry-run" "--debug")
   fi
+
+  if [ "$purge" = true ]; then
+    delete_args+=("--purge")
+  fi
+
+  delete_args+=("$release")
   logfile="/tmp/log"
   mkdir -p /tmp
-  helm_cmd="$helm_cmd $release | tee $logfile"
-  helm_echo="$helm_echo $release | tee $logfile"
-  echo "Running command $helm_echo"
-  eval $helm_cmd
+  echo "Running command helm ${delete_args[@]} | tee $logfile"
+  helm "${delete_args[@]}" $tls_flag | tee $logfile
 }
 
-wait_ready() {
+helm_test() {
+  if [ -z "$release" ]; then
+    echo "invalid payload (missing release if test=true)"
+    exit 1
+  fi
+  echo "Testing the release $release..."
+  test_args=("test" "--tiller-namespace=$tiller_namespace")
+  if [ "$debug" = true ]; then
+    test_args+=("--dry-run" "--debug")
+  fi
+  test_args+=("$release")
+  logfile="/tmp/log"
+  mkdir -p /tmp
+  echo "Running command helm ${test_args[@]} | tee $logfile"
+  result=$(helm "${test_args[@]}" $tls_flag || true)
+
+  if [[ $result = *"FAILED"* ]]; then
+    _cmd=$(echo $result | awk -F '`' '{print $2};')
+
+    echo ""
+    echo "#### FAILED TEST OUTPUT ####" | tee $logfile
+    $_cmd | tee $logfile
+    echo "#### FAILED TEST OUTPUT ####" | tee $logfile
+    echo ""
+
+    cleanup=$(echo $_cmd | sed 's/logs/delete pod/g')
+    $cleanup | tee $logfile
+
+    exit 1
+  elif [[ $result = *"ERROR"* ]]; then
+    echo $result | tee $logfile
+    exit 1
+  elif [[ $result = *"PASSED"* ]]; then
+    echo $result | tee $logfile
+    TEST_PODS=$(echo $result | awk '{for(i=1;i<=NF;i++)if($i=="RUNNING:")print $(i+1)}' | sed 's/^/ /' )
+    kubectl delete pod $TEST_PODS -n $namespace | tee $logfile
+  else
+    echo "Unhandled"
+    exit 1
+  fi
+}
+
+wait_ready_notice() {
   if [ -n "$wait_until_ready" ] && [ "$wait_until_ready" -gt "0" ]; then
-    echo "Waiting until deployment of $release is ready..."
-    node /opt/wait-for-helm-deployment/src/index.js $release $tiller_namespace $wait_until_ready
+    echo "Waiting until deployment of $release is ready... (up to $wait_until_ready seconds)"
   fi
 }
 
@@ -223,18 +250,19 @@ if [ "$delete" = true ]; then
   helm_delete
   result="$(jq -n "{version:{release:\"$release\", deleted: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
   echo "$result" | jq -s add  >&3
+elif [ "$test" = true ]; then
+  helm_test
+  result="$(jq -n "{version:{release:\"$release\", tested: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
+  echo "$result" | jq -s add  >&3
 else
-  if [ "$(is_deployed $release)" = true ]; then
-    echo "Upgrading $release"
-    helm_upgrade
-  else
-    echo "Installing $release"
-    helm_install
-  fi
+  echo "Installing $release"
+  helm_upgrade
 
-  revision=$(current_revision)
+  deployed=$(current_deployed)
+  revision=$(echo $deployed | awk '{ print $1 }')
+  chart=$(echo $deployed | awk '{ print $8 }')
   echo "Deployed revision $revision of $release"
-  wait_ready
-  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"}]}")"
+  wait_ready_notice
+  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"},{name: \"chart\", value: \"$chart\"}]}")"
   echo "$result" | jq -s add  >&3
 fi
