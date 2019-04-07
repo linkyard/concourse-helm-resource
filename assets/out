@@ -18,6 +18,7 @@ setup_resource $payload $source
 echo "Resource setup successful."
 
 # Parse parameters
+tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
@@ -78,6 +79,12 @@ if [ "$tls_enabled" = true ]; then
   tls_flag="--tls"
 fi
 
+if [ "$tillerless" = true ]; then
+  helm_bin="helm tiller run ${tiller_namespace} -- helm"
+else
+  helm_bin="helm"
+fi
+
 set_overridden_values() {
   while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
     if [ -n "$path" ]; then
@@ -101,7 +108,7 @@ set_overridden_values() {
 
 # Find the current revision of a helm release
 current_deployed() {
-  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
+  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
 }
 
 helm_upgrade() {
@@ -158,7 +165,7 @@ helm_upgrade() {
       echo "helm diff does not support TLS at the present moment."
     else
       echo "Release diff:"
-      helm diff "${helm_diff_args[@]}" | tee "$logfile"
+      $helm_bin diff "${helm_diff_args[@]}" | tee "$logfile"
     fi
   fi
 
@@ -166,7 +173,7 @@ helm_upgrade() {
     echo "Exiting after diff"
   else
     echo "Running command helm ${helm_echo_args[@]} | tee $logfile"
-    helm "${helm_args[@]}" $tls_flag | tee "$logfile"
+    $helm_bin "${helm_args[@]}" $tls_flag | tee "$logfile"
   fi
 
   if [ -n "$wait" ] && [ "$wait" -gt "0" ]; then
@@ -194,7 +201,7 @@ helm_delete() {
   logfile="/tmp/log"
   mkdir -p /tmp
   echo "Running command helm ${delete_args[@]} | tee $logfile"
-  helm "${delete_args[@]}" $tls_flag | tee $logfile
+  $helm_bin "${delete_args[@]}" $tls_flag | tee $logfile
 }
 
 helm_test() {
@@ -211,7 +218,7 @@ helm_test() {
   logfile="/tmp/log"
   mkdir -p /tmp
   echo "Running command helm ${test_args[@]} | tee $logfile"
-  result=$(helm "${test_args[@]}" $tls_flag || true)
+  result=$(${helm_bin} "${test_args[@]}" $tls_flag || true)
 
   if [[ $result = *"FAILED"* ]]; then
     _cmd=$(echo $result | awk -F '`' '{print $2};')
