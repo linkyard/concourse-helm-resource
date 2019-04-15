@@ -143,7 +143,7 @@ setup_repos() {
   for pl in $plugins; do
     plurl=$(echo $pl | jq -cr '.url')
     plversion=$(echo $pl | jq -cr '.version // ""')
-    if [ -n "$plversison" ]; then
+    if [ -n "$plversion" ]; then
       plversionflag="--version $plversion"
     fi
     helm plugin install $plurl $plversionflag
