@@ -21,6 +21,13 @@ namespace=$(jq -r '.source.namespace // "default"' < $payload)
 release=$(jq -r '.source.release // ""' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 
+tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
+if [ "$tillerless" = true ]; then
+  helm_bin="helm tiller run ${tiller_namespace} -- helm"
+else
+  helm_bin="helm"
+fi
+
 current_release=$(jq -r '.version.release' < $payload || true)
 if [ -z "$release" ]; then
   release="$current_release"
@@ -35,13 +42,13 @@ current_rev=$(jq -r '.version.revision // "0"' < $payload || true)
 
 if [ "$current_rev" -eq "0" ]; then
   # Empty => return the current
-  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
+  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
     revision=$(echo $line | awk '{ print $1 }')
     echo "$revision"
   done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
 else
   # All versions equal and newer
-  helm history $tls_flag --tiller-namespace $tiller_namespace  --max 20 $release | tail -n +2 | while read -r line; do
+  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace  --max 20 $release | tail -n +2 | while read -r line; do
     revision=$(echo $line | awk '{ print $1 }')
     if [ -z "$current_rev" ] || [ "$revision" -ge "$current_rev" ]; then
       echo "$revision"
