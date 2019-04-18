@@ -48,7 +48,13 @@ setup_kubernetes() {
 
 setup_tls() {
   tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
+  tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
   if [ "$tls_enabled" = true ]; then
+    if [ "$tillerless" = true ]; then
+      echo "Setting both tls_enabled and tillerless is not supported"
+      exit 1
+    fi
+
     helm_ca=$(jq -r '.source.helm_ca // ""' < $payload)
     helm_key=$(jq -r '.source.helm_key // ""' < $payload)
     helm_cert=$(jq -r '.source.helm_cert // ""' < $payload)
@@ -93,6 +99,10 @@ setup_helm() {
   fi
 
   if [ "$init_server" = true ]; then
+    if [ "$tillerless" = true ]; then
+      echo "Setting both init_server and tillerless is not supported"
+      exit 1
+    fi
     tiller_service_account=$(jq -r '.source.tiller_service_account // "default"' < $1)
     if [ "$tls_enabled" = true ]; then
       tiller_key=$(jq -r '.source.tiller_key // ""' < $payload)
