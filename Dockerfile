@@ -3,7 +3,7 @@ LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
 RUN apk add --update --upgrade --no-cache jq bash curl
 
-ENV KUBERNETES_VERSION 1.14.0
+ENV KUBERNETES_VERSION 1.14.1
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl; \
   chmod +x /usr/local/bin/kubectl
 
