@@ -88,6 +88,7 @@ setup_helm() {
   stable_repo=$(jq -r '.source.stable_repo // ""' < $payload)
 
   if [ "$tillerless" = true ]; then
+    echo "Using tillerless helm"
     helm_bin="helm tiller run ${tiller_namespace} -- helm"
   else
     helm_bin="helm"
