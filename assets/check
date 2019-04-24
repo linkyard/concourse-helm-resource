@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 set -o pipefail
 
 exec 3>&1 # make stdout available as fd 3 for the result
@@ -39,19 +39,50 @@ if [ "$tls_enabled" = true ]; then
 fi
 
 current_rev=$(jq -r '.version.revision // "0"' < $payload || true)
+release_status=$(jq -r '.version.status // ""' < "${payload}" || true)
 
-if [ "$current_rev" -eq "0" ]; then
-  # Empty => return the current
-  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
-    revision=$(echo $line | awk '{ print $1 }')
-    echo "$revision"
-  done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
+# if [ "$current_rev" -eq "0" ]; then
+#   # Empty => return the current
+#   $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
+#     revision=$(echo $line | awk '{ print $1 }')
+#     echo "$revision"
+#   done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
+# else
+#   # All versions equal and newer
+#   $helm_bin history $tls_flag --tiller-namespace $tiller_namespace  --max 20 $release | tail -n +2 | while read -r line; do
+#     revision=$(echo $line | awk '{ print $1 }')
+#     if [ -z "$current_rev" ] || [ "$revision" -ge "$current_rev" ]; then
+#       echo "$revision"
+#     fi
+#   done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
+# fi
+
+if [ -z "${current_rev}" ]; then
+  echo '{}' >&3
 else
-  # All versions equal and newer
-  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace  --max 20 $release | tail -n +2 | while read -r line; do
-    revision=$(echo $line | awk '{ print $1 }')
-    if [ -z "$current_rev" ] || [ "$revision" -ge "$current_rev" ]; then
+  set +e
+  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release &> /dev/null
+  if [[ $? -eq 0 ]]; then
+    set -e
+    $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
+      revision=$(echo $line | awk '{ print $1 }')
       echo "$revision"
+    done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
+  else
+    if [ -n "${release_status}" ]; then
+      set -e
+      jq -n "[
+        { \"release\": \"${release}\", \"status\": \"${release_status}\" }
+      ]" >&3
+    else
+      set -e
+      # All versions equal and newer
+      $helm_bin history $tls_flag --tiller-namespace $tiller_namespace  --max 20 $release | tail -n +2 | while read -r line; do
+        revision=$(echo $line | awk '{ print $1 }')
+        if [ -z "$current_rev" ] || [ "$revision" -ge "$current_rev" ]; then
+          echo "$revision"
+        fi
+      done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
     fi
-  done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
+  fi
 fi
