@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 set -o pipefail
 
 exec 3>&1 # make stdout available as fd 3 for the result
