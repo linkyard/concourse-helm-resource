@@ -84,7 +84,13 @@ if [ "$tls_enabled" = true ]; then
   tls_flag="--tls"
 fi
 
-if [ ! -n "$tiller_namespace" ]; then
+if [ ! -z "$tiller_namespace" ]; then
+  if [ -f "$source/$tiller_namespace" ]; then
+    tiller_namespace=`cat $source/$tiller_namespace`
+  else
+    tiller_namespace=$tiller_namespace
+  fi
+else
   tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 fi
 
