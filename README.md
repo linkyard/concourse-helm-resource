@@ -16,7 +16,7 @@ resource_types:
 
 ## Source Configuration
 
-* `cluster_url`: *Required.* URL to Kubernetes Master API service
+* `cluster_url`: *Optional.* URL to Kubernetes Master API service. Do not set when using the `kubeconfig_path` parameter, otherwise required.
 * `cluster_ca`: *Optional.* Base64 encoded PEM. Required if `cluster_url` is https.
 * `token`: *Optional.* Bearer token for Kubernetes.  This, 'token_path' or `admin_key`/`admin_cert` are required if `cluster_url` is https.
 * `token_path`: *Optional.* Path to file containing the bearer token for Kubernetes.  This, 'token' or `admin_key`/`admin_cert` are required if `cluster_url` is https.
@@ -39,12 +39,17 @@ resource_types:
 * `repos`: *Optional.* Array of Helm repositories to initialize, each repository is defined as an object with properties `name`, `url` (required) username and password (optional).
 * `plugins`: *Optional.* Array of Helm plugins to install, each defined as an object with properties `url` (required), `version` (optional).
 * `stable_repo`: *Optional* Override default Helm stable repo <https://kubernetes-charts.storage.googleapis.com>. Useful if running helm deploys without internet access.
+* `kubeconfig_namespace`: *Optional.* Use the kubeconfig context namespace as the helm namespace. (Default: false)
+* `kubeconfig_tiller_namespace`: *Optional.* Use the kubeconfig context namespace as the tiller namespace. (Default: false)
+* `tracing_enabled`: *Optional.* Enable extremely verbose tracing for this resource. Useful when developing the resource itself. May allow secrets to be displayed. (Default: false)
+* `helm_init_wait`: *Optional.* When initializing the helm server, use the `--wait` option. (Default: false)
+* `helm_setup_purge_all`: *Optional.* Delete and purge every helm release. Use with extreme caution. (Default: false)
 
 ## Behavior
 
 ### `check`: Check for new releases
 
-Any new revisions to the release are returned, no matter their current state. The release must be specified in the
+Any new revisions to the release are returned, no matter their current state. The release and cluster url must be specified in the
 source for `check` to work.
 
 ### `in`: Not Supported
@@ -83,6 +88,7 @@ on the cluster.
 * `exit_after_diff`: *Optional.* Show the diff but don't actually install/upgrade. (Default: false)
 * `reuse_values`: *Optional.* When upgrading, reuse the last release's values. (Default: false)
 * `wait`: *Optional.* Allows deploy task to sleep for X seconds before continuing to next task. Allows pods to restart and become stable, useful where dependency between pods exists. (Default: 0)
+* `kubeconfig_path`: *Optional.* File containing a kubeconfig. Overrides source configuration for cluster, token, and admin config.
 
 ## Example
 

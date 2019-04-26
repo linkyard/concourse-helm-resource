@@ -12,14 +12,11 @@ source /opt/resource/common.sh
 payload=$(mktemp $TMPDIR/helm-resource-request.XXXXXX)
 cat > $payload <&0
 
-# Prepare
-setup_resource $payload
-echo "Resource setup successful."
-
 # Parse parameters
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 release=$(jq -r '.source.release // ""' < $payload)
 tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
+cluster_url=$(jq -r '.source.cluster_url // ""' < $payload)
 
 tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
 if [ "$tillerless" = true ]; then
@@ -39,6 +36,27 @@ if [ "$tls_enabled" = true ]; then
 fi
 
 current_rev=$(jq -r '.version.revision // "0"' < $payload || true)
+
+if [ -z "$cluster_url" ]; then
+  # Since the resource was configured to use a dynamic namespace,
+  # check does not make any sense since it is impossible to know which
+  # tiller and which release name should be checked.
+  # The resource is in "put" only mode.
+  if [ $current_rev -eq 0 ]; then
+    # When there was no `version` passed in, return an empty list
+    echo '[]' >&3
+  else
+    # When the `version` was passed in, parrot it back
+    printf '[{"revision":"%s","release":"%s"}]\n' "$current_rev" "$release" | jq -M . >&3
+  fi
+
+  # Check has successfully finished so exit with success.
+  exit 0
+fi
+
+# Prepare
+setup_resource $payload
+echo "Resource setup successful."
 
 if [ "$current_rev" -eq "0" ]; then
   # Empty => return the current
