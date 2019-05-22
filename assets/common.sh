@@ -30,6 +30,7 @@ setup_kubernetes() {
       elif [ ! -z "$token" ]; then
         kubectl config set-credentials admin --token=$token
       else
+        mkdir -p /root/.kube
         key_path="/root/.kube/key.pem"
         cert_path="/root/.kube/cert.pem"
         echo "$admin_key" | base64 -d > $key_path
