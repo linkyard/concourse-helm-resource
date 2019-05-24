@@ -20,6 +20,7 @@ echo "Resource setup successful."
 # Parse parameters
 tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
+tiller_namespace=$(jq -r '.params.tiller_namespace // ""' < $payload)
 chart=$(jq -r '.params.chart // ""' < $payload)
 version=$(jq -r '.params.version // ""' < $payload)
 namespace_file=$(jq -r '.params.namespace // ""' < $payload)
@@ -81,6 +82,16 @@ fi
 
 if [ "$tls_enabled" = true ]; then
   tls_flag="--tls"
+fi
+
+if [ ! -z "$tiller_namespace" ]; then
+  if [ -f "$source/$tiller_namespace" ]; then
+    tiller_namespace=`cat $source/$tiller_namespace`
+  else
+    tiller_namespace=$tiller_namespace
+  fi
+else
+  tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $payload)
 fi
 
 if [ "$tillerless" = true ]; then
