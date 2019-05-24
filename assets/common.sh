@@ -25,6 +25,10 @@ setup_kubernetes() {
       token=$(jq -r '.source.token // ""' < $payload)
       token_path=$(jq -r '.params.token_path // ""' < $payload)
 
+      ca_path="/root/.kube/ca.pem"
+      echo "$cluster_ca" | base64 -d > $ca_path
+      kubectl config set-cluster default --server=$cluster_url --certificate-authority=$ca_path
+
       if [ -f "$source/$token_path" ]; then
         kubectl config set-credentials admin --token=$(cat $source/$token_path)
       elif [ ! -z "$token" ]; then
