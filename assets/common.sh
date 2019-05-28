@@ -4,11 +4,13 @@ set -e
 setup_kubernetes() {
   payload=$1
   source=$2
+  
+  mkdir -p /root/.kube
 
   kubeconfig_path=$(jq -r '.params.kubeconfig_path // ""' < $payload)
   absolute_kubeconfig_path="${source}/${kubeconfig_path}"
   if [ -f "$absolute_kubeconfig_path" ]; then
-    mkdir -p /root/.kube
+
     cp "$absolute_kubeconfig_path" "/root/.kube/config"
   else
     # Setup kubectl
@@ -34,7 +36,6 @@ setup_kubernetes() {
       elif [ ! -z "$token" ]; then
         kubectl config set-credentials admin --token=$token
       else
-        mkdir -p /root/.kube
         key_path="/root/.kube/key.pem"
         cert_path="/root/.kube/cert.pem"
         echo "$admin_key" | base64 -d > $key_path
