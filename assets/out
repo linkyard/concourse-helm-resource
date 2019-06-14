@@ -100,13 +100,6 @@ else
   helm_bin="helm"
 fi
 
-helm_install_local_chart_dependencies() {
-  helm_cmd="helm dependency update $chart_full"
-  helm_echo="helm dependency update $chart_full"
-  echo "Running command $helm_echo"
-  eval "$helm_cmd"
-}
-
 set_overridden_values() {
   while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
     if [ -n "$path" ]; then
@@ -191,7 +184,10 @@ helm_upgrade() {
   helm_diff_args=("${upgrade_args[@]}" "${overridden_args[@]}" "--suppress-secrets" "--allow-unreleased")
 
   if [[ -d "$chart_full" ]]; then
-    helm_install_local_chart_dependencies
+    helm_depup_args=("dependency" "update" "$chart_full")
+    helm_depup_echo_args=("dependency" "update" "$chart_full")
+    echo "Running command helm ${helm_depup_echo_args[@]}"
+    $helm_bin "${helm_depup_args[@]}" | tee "$logfile"
   fi
 
   if [ "$show_diff" = true ] && current_deployed "$release"> /dev/null && [ "$devel" != true ]; then
