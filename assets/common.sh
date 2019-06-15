@@ -88,14 +88,25 @@ setup_tls() {
 }
 
 setup_helm() {
+  # $1 is the name of the payload file
+  # $2 is the name of the source directory
   init_server=$(jq -r '.source.helm_init_server // "false"' < $1)
 
+  # Compute tiller_namespace as follows:
+  # If kubeconfig_tiller_namespace is set, then tiller_namespace is the namespace from the kubeconfig
+  # If tiller_namespace is set and it is the name of a file, then tiller_namespace is the contents of the file
+  # If tiller_namespace is set and it is not the name of a file, then tiller_namespace is the literal
+  # Otherwise tiller_namespace defaults to kube-system
   kubeconfig_tiller_namespace=$(jq -r '.source.kubeconfig_tiller_namespace // "false"' <$1)
   if [ "$kubeconfig_tiller_namespace" = "true" ]
   then
     tiller_namespace=$(kubectl config view --minify -ojson | jq -r .contexts[].context.namespace)
   else
     tiller_namespace=$(jq -r '.source.tiller_namespace // "kube-system"' < $1)
+    if [ "$tiller_namespace" != "kube-system" -a -f "$2/$tiller_namespace" ]
+    then
+      tiller_namespace=$(cat "$2/$tiller_namespace")
+    fi
   fi
 
   tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
@@ -234,6 +245,6 @@ setup_resource() {
   setup_kubernetes $1 $2
   echo "Initializing helm..."
   setup_tls $1
-  setup_helm $1
+  setup_helm $1 $2
   setup_repos $1
 }
