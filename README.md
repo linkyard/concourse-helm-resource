@@ -61,7 +61,7 @@ on the cluster.
 
 #### Parameters
 
-* `chart`: *Required.* Either the file containing the helm chart to deploy (ends with .tgz) or the name of the chart (e.g. `stable/mysql`).
+* `chart`: *Required.* Either the file containing the helm chart to deploy (ends with .tgz), the path to a local directory containing the chart or the name of the chart from a repo (e.g. `stable/mysql`).
 * `namespace`: *Optional.* Either a file containing the name of the namespace or the name of the namespace. (Default: taken from source configuration).
 * `release`: *Optional.* Either a file containing the name of the release or the name of the release. (Default: taken from source configuration).
 * `values`: *Optional.* File containing the values.yaml for the deployment. Supports setting multiple value files using an array.
