@@ -41,6 +41,7 @@ recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
 exit_after_diff=$(jq -r '.params.exit_after_diff // "false"' < $payload)
 reuse_values=$(jq -r '.params.reuse_values // "false"' < $payload)
+reset_values=$(jq -r '.params.reset_values // "false"' < $payload)
 wait=$(jq -r '.params.wait // 0' < $payload)
 check_is_ready=$(jq -r '.params.check_is_ready // "false"' < $payload)
 kubeconfig_namespace=$(jq -r '.source.kubeconfig_namespace // "false"' < $payload)
@@ -165,6 +166,10 @@ helm_upgrade() {
   if [ "$reuse_values" = true ]; then
     upgrade_args+=("--reuse-values")
     non_diff_args+=("--reuse-values")
+  fi
+  if [ "$reset_values" = true ]; then
+    upgrade_args+=("--reset-values")
+    non_diff_args+=("--reset-values")
   fi
 
   logfile="/tmp/log"
