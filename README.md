@@ -87,6 +87,7 @@ on the cluster.
 * `show_diff`: *Optional.* Show the diff that is applied if upgrading an existing successful release. Will not be used when `devel` is set. (Default: false)
 * `exit_after_diff`: *Optional.* Show the diff but don't actually install/upgrade. (Default: false)
 * `reuse_values`: *Optional.* When upgrading, reuse the last release's values. (Default: false)
+* `reset_values`: *Optional.* When upgrading, reset the values to the ones built into the chart. (Default: false)
 * `wait`: *Optional.* Allows deploy task to sleep for X seconds before continuing to next task. Allows pods to restart and become stable, useful where dependency between pods exists. (Default: 0)
 * `kubeconfig_path`: *Optional.* File containing a kubeconfig. Overrides source configuration for cluster, token, and admin config.
 
