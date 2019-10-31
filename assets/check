@@ -58,6 +58,7 @@ fi
 setup_resource $payload
 echo "Resource setup successful."
 
+set +e
 if [ "$current_rev" -eq "0" ]; then
   # Empty => return the current
   $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | tail -n 1 | while read -r line; do
@@ -73,3 +74,4 @@ else
     fi
   done | jq -R '.' | jq -s "map({\"revision\": ., \"release\": \"$release\"})" >&3
 fi
+set -e

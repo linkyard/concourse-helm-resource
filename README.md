@@ -1,4 +1,4 @@
-# Helm Resource for Concourse
+# Helm & Helmfile Resource for Concourse
 
 Deploy to [Kubernetes Helm](https://github.com/kubernetes/helm) from [Concourse](https://concourse.ci/).
 
@@ -8,10 +8,10 @@ Add the resource type to your pipeline:
 
 ```yaml
 resource_types:
-- name: helm
+- name: helmfile
   type: docker-image
   source:
-    repository: linkyard/concourse-helm-resource
+    repository: quoinedev/concourse-helmfile-resource
 ```
 
 ## Source Configuration
@@ -44,6 +44,16 @@ resource_types:
 * `tracing_enabled`: *Optional.* Enable extremely verbose tracing for this resource. Useful when developing the resource itself. May allow secrets to be displayed. (Default: false)
 * `helm_init_wait`: *Optional.* When initializing the helm server, use the `--wait` option. (Default: false)
 * `helm_setup_purge_all`: *Optional.* Delete and purge every helm release. Use with extreme caution. (Default: false)
+
+*For Helmfile*
+
+* `helmfile`: *Optional.* The helmfile.yaml. If this param is specified, helmfile will execute instead.
+* `dir`: *Optional.* The dir name of where the helmfile is.
+* `environment`: *Optional.* Helmfile environment name.
+* `state_values_file`: *Optional.* Helmfile --state-value-file option.
+* `state_values_set`: *Optional.* Helmfile --state-values-set option.
+* `selector`: *Optional.* Helmfile --selector option.
+* `env_vars`: *Optional.* Container Environment variables to be set before executing helmfile command.
 
 ## Behavior
 

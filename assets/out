@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 set -e
 set -o pipefail
 
@@ -46,10 +47,21 @@ wait=$(jq -r '.params.wait // 0' < $payload)
 check_is_ready=$(jq -r '.params.check_is_ready // "false"' < $payload)
 kubeconfig_namespace=$(jq -r '.source.kubeconfig_namespace // "false"' < $payload)
 
+# helmfile params
+dir=$(jq -r '.params.dir // ""' < $payload)
+helmfile=$(jq -r '.params.helmfile // ""' < $payload)
+environment=$(jq -r '.params.environment // ""' < $payload)
+state_values_file=$(jq -r '.params.state_values_file // ""' < $payload)
+state_values_set=$(jq -r '.params.state_values_set // ""' < $payload)
+selector=$(jq -r '.params.selector // ""' < $payload)
+env_vars=$(jq -r '.params.env_vars // ""' < $payload)
+
 if [ -z "$chart" ]; then
-  if [[ "$test" == "false" && "$delete" == "false" ]]; then
-    echo "invalid payload (missing chart)"
-    exit 1
+  if [ -z "$helmfile" ]; then
+    if [[ "$test" == "false" && "$delete" == "false" ]]; then
+      echo "invalid payload (missing chart)"
+      exit 1
+    fi
   fi
 fi
 
@@ -278,6 +290,55 @@ wait_ready_notice() {
   fi
 }
 
+# helmfile_delete() {}
+# helmfile_destroy() {}
+
+helmfile_apply() {
+  apply_args=()
+
+  if [ -n "$env_vars" ]; then
+    IFS=' ' read -r -a envvars <<< "${env_vars}"
+    export "${envvars[@]}"
+  fi
+
+  if [ -n "$dir" ]; then
+    cd /tmp/build/put/$dir
+  fi
+
+  if [ -n "$helmfile" ]; then
+    apply_args+=("--file" "$helmfile")
+  fi
+  helmfile "${apply_args[@]}" repos | tee $logfile
+
+  if [ -n "$environment" ]; then
+    apply_args+=("--environment" "$environment")
+  fi
+
+  if [ -n "$namespace" ]; then
+    apply_args+=("--namespace" "$namespace")
+  fi
+
+  if [ -n "$state_values_file" ]; then
+    apply_args+=("--state-values-file" "$state_values_file")
+  fi
+
+  if [ -n "$state_values_set" ]; then
+    apply_args+=("--state-values-set" "$state_values_set")
+  fi
+
+  if [ -n "$selector" ]; then
+    apply_args+=("--selector" "$selector")
+  fi
+
+  apply_args+=("apply" "--suppress-secrets")
+
+  if [ -n "$values" ]; then
+    apply_args+=("--values" "$values")
+  fi
+
+  helmfile "${apply_args[@]}" | tee $logfile
+}
+
 
 if [ "$delete" = true ]; then
   helm_delete
@@ -287,12 +348,25 @@ elif [ "$test" = true ]; then
   helm_test
   result="$(jq -n "{version:{release:\"$release\", tested: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
   echo "$result" | jq -s add  >&3
+elif [ -n "$helmfile" ]; then
+  helmfile_apply
+
+  if [ "$release" = "" ]; then
+    release=$(${helm_bin} ls -qrd --tiller-namespace $tiller_namespace --max 20 | head -1)
+  fi
+  deployed=$(current_deployed "$release")
+  revision=$(echo $deployed | awk '{ print $1 }')
+  chart=$(echo $deployed | awk '{ print $8 }')
+  echo "Deployed revision $revision of $release"
+  wait_ready_notice
+  result="$(jq -n "{version:{release:\"$release\", revision:\"$revision\"}, metadata: [{name: \"release\", value: \"$release\"},{name: \"revision\", value: \"$revision\"},{name: \"chart\", value: \"$chart\"}]}")"
+  echo "$result" | jq -s add  >&3
 else
   echo "Installing $release"
   helm_upgrade
 
   if [ "$release" = "" ]; then
-    release=$(helm ls -qrd --tiller-namespace $tiller_namespace --max 20 | head -1)
+    release=$(${helm_bin} ls -qrd --tiller-namespace $tiller_namespace --max 20 | head -1)
   fi
   deployed=$(current_deployed "$release")
   revision=$(echo $deployed | awk '{ print $1 }')
