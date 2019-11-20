@@ -70,6 +70,8 @@ on the cluster.
   the file in that path. A `hide: true` parameter ensures that the value is not logged and instead replaced with `***HIDDEN***`.
   A `type: string` parameter makes sure Helm always treats the value as a string (uses the `--set-string` option to Helm; useful if the value varies
   and may look like a number, eg. if it's a Git commit hash).
+  A `verbatim: true` parameter escapes backslashes so the value is passed as-is to the Helm chart (useful for `((credentials))`).
+  The default behaviour of backslashes in `--set` is to quote the next character so `val\ue` is treated as `value` by Helm.
 * `token_path`: *Optional.* Path to file containing the bearer token for Kubernetes.  This, 'token' or `admin_key`/`admin_cert` are required if `cluster_url` is https.
 * `version`: *Optional* Chart version to deploy, can be a file or a value. Only applies if `chart` is not a file.
 * `delete`: *Optional.* Deletes the release instead of installing it. Requires the `name`. (Default: false)
