@@ -52,7 +52,6 @@ if [ -z "$chart" ]; then
     exit 1
   fi
 fi
-
 if [ -f "$source/$namespace_file" ]; then
   namespace=`cat $source/$namespace_file`
 elif [ -n "$namespace_file" ]; then
@@ -72,6 +71,9 @@ if [ -n "$release_file" ]; then
 else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
+
+# Expand env variables such as resource metadata (see https://concourse-ci.org/implementing-resource-types.html#resource-metadata)
+release=$(echo -n "$release" | envsubst)
 
 if [[ "$chart" == *.tgz ]] || [[ -d "$source/$chart" ]]; then
   # it's a file/directory
