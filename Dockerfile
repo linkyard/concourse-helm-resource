@@ -1,7 +1,7 @@
 FROM alpine/helm:2.14.3
 LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
-RUN apk add --update --upgrade --no-cache jq bash curl git
+RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl
 
 ENV KUBERNETES_VERSION 1.16.3
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl; \
