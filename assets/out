@@ -35,6 +35,7 @@ delete=$(jq -r '.params.delete // "false"' < $payload)
 test=$(jq -r '.params.test // "false"' < $payload)
 purge=$(jq -r '.params.purge // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
+atomic=$(jq -r '.params.atomic // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 force=$(jq -r '.params.force // "false"' < $payload)
 show_diff=$(jq -r '.params.show_diff // "false"' < $payload)
@@ -166,6 +167,9 @@ helm_upgrade() {
       version=$(cat $source/$version)
     fi
     upgrade_args+=("--version" "$version")
+  fi
+  if [ "$atomic" = true ]; then
+    non_diff_args+=("--atomic")
   fi
   if [ "$recreate_pods" = true ]; then
     non_diff_args+=("--recreate-pods")
