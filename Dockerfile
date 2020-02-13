@@ -1,4 +1,4 @@
-FROM alpine/helm:2.14.3
+FROM alpine/helm:2.16.1
 LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
 RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl
