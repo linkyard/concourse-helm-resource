@@ -19,6 +19,7 @@ echo "Resource setup successful."
 
 # Parse parameters
 tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
+tillerless_silent=$(jq -r '.source.tillerless_silent // "true"' < $payload)
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 # tiller_namespace is computed in a more robust manner in common.sh via setup_resource. Don't override it here!
 # tiller_namespace=$(jq -r '.params.tiller_namespace // ""' < $payload)
@@ -87,6 +88,9 @@ if [ "$tls_enabled" = true ]; then
 fi
 
 if [ "$tillerless" = true ]; then
+  if [ "$tillerless_silent" = true ]; then
+    export HELM_TILLER_SILENT=true
+  fi
   helm_bin="helm tiller run ${tiller_namespace} -- helm"
 else
   helm_bin="helm"
