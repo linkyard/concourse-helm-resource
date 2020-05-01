@@ -20,6 +20,7 @@ echo "Resource setup successful."
 
 # Parse parameters
 tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
+tillerless_silent=$(jq -r '.source.tillerless_silent // "true"' < $payload)
 namespace=$(jq -r '.source.namespace // "default"' < $payload)
 # tiller_namespace is computed in a more robust manner in common.sh via setup_resource. Don't override it here!
 # tiller_namespace=$(jq -r '.params.tiller_namespace // ""' < $payload)
@@ -35,6 +36,7 @@ delete=$(jq -r '.params.delete // "false"' < $payload)
 test=$(jq -r '.params.test // "false"' < $payload)
 purge=$(jq -r '.params.purge // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
+atomic=$(jq -r '.params.atomic // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 force=$(jq -r '.params.force // "false"' < $payload)
 show_diff=$(jq -r '.params.show_diff // "false"' < $payload)
@@ -64,7 +66,6 @@ if [ -z "$chart" ]; then
     fi
   fi
 fi
-
 if [ -f "$source/$namespace_file" ]; then
   namespace=`cat $source/$namespace_file`
 elif [ -n "$namespace_file" ]; then
@@ -85,6 +86,9 @@ else
   release=$(jq -r '.source.release // ""' < $payload)
 fi
 
+# Expand env variables such as resource metadata (see https://concourse-ci.org/implementing-resource-types.html#resource-metadata)
+release=$(echo -n "$release" | envsubst)
+
 if [[ "$chart" == *.tgz ]] || [[ -d "$source/$chart" ]]; then
   # it's a file/directory
   chart_full="$source/$chart"
@@ -99,15 +103,22 @@ if [ "$tls_enabled" = true ]; then
 fi
 
 if [ "$tillerless" = true ]; then
+  if [ "$tillerless_silent" = true ]; then
+    export HELM_TILLER_SILENT=true
+  fi
   helm_bin="helm tiller run ${tiller_namespace} -- helm"
 else
   helm_bin="helm"
 fi
 
 set_overridden_values() {
-  while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type; do
+  while read -r -d '' key && read -r -d '' value && read -r -d '' path && read -r -d '' hidden && read -r -d '' type && read -r -d '' verbatim; do
     if [ -n "$path" ]; then
       value="$(< "$source/$path")"
+    fi
+
+    if [ "$verbatim" != 'false' ]; then
+      value="${value/\\/\\\\}"
     fi
 
     scrubbed_value="$value"
@@ -122,7 +133,7 @@ set_overridden_values() {
 
     overridden_args+=("$helm_set_opt" "$key=$value")
     scrubbed_overridden_args+=("$helm_set_opt" "$key=$scrubbed_value")
-  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hide // false, .type) else empty end | tostring + "\u0000"'  < $payload)
+  done < <(jq -j '.params.override_values[]? | if .key and (.value or .path) then (.key, .value // "", .path // "", .hide // false, .type, .verbatim // false) else empty end | tostring + "\u0000"'  < $payload)
 }
 
 # Find the current revision of a helm release
@@ -168,6 +179,9 @@ helm_upgrade() {
       version=$(cat $source/$version)
     fi
     upgrade_args+=("--version" "$version")
+  fi
+  if [ "$atomic" = true ]; then
+    non_diff_args+=("--atomic")
   fi
   if [ "$recreate_pods" = true ]; then
     non_diff_args+=("--recreate-pods")
