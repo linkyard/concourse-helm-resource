@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 set -e
 set -o pipefail
 
@@ -50,16 +49,18 @@ check_is_ready=$(jq -r '.params.check_is_ready // "false"' < $payload)
 kubeconfig_namespace=$(jq -r '.source.kubeconfig_namespace // "false"' < $payload)
 
 # helmfile params
-dir=$(jq -r '.params.dir // ""' < $payload)
-helmfile=$(jq -r '.params.helmfile // ""' < $payload)
-environment=$(jq -r '.params.environment // ""' < $payload)
-state_values_file=$(jq -r '.params.state_values_file // ""' < $payload)
-state_values_set=$(jq -r '.params.state_values_set // ""' < $payload)
-selector=$(jq -r '.params.selector // ""' < $payload)
-env_vars=$(jq -r '.params.env_vars // ""' < $payload)
+hf_enable=$(jq -r '.params.helmfile.enable // "false"' < $payload)
+hf_action=$(jq -r '.params.helmfile.action // "apply"' < $payload)
+hf_directory=$(jq -r '.params.helmfile.directory // "."' < $payload)
+hf_file=$(jq -r '.params.helmfile.file // "helmfile.yaml"' < $payload)
+hf_environment=$(jq -r '.params.helmfile.environment // ""' < $payload)
+hf_state_values_file=$(jq -r '.params.helmfile.state_values_file // ""' < $payload)
+hf_state_values_set=$(jq -r '.params.helmfile.state_values_set // ""' < $payload)
+hf_selector=$(jq -r '.params.helmfile.selector // ""' < $payload)
+hf_env_vars=$(jq -r '.params.helmfile.env_vars // ""' < $payload)
 
 if [ -z "$chart" ]; then
-  if [ -z "$helmfile" ]; then
+  if [ "$hf_enable" = "false" ]; then
     if [[ "$test" == "false" && "$delete" == "false" ]]; then
       echo "invalid payload (missing chart)"
       exit 1
@@ -304,55 +305,66 @@ wait_ready_notice() {
   fi
 }
 
-# helmfile_delete() {}
-# helmfile_destroy() {}
+helmfile_action() {
+  echo "Executing Helmfile function"
+  echo "hf_enable: ${hf_enable}"
+  echo "hf_action: ${hf_action}"
+  echo "hf_directory: ${hf_directory}"
+  echo "hf_file: ${hf_file}"
+  echo "hf_environment: ${hf_environment}"
+  echo "hf_state_values_file: ${hf_state_values_file}"
+  echo "hf_selector: ${hf_selector}"
+  echo "hf_env_vars: ${hf_env_vars}"
 
-helmfile_apply() {
-  apply_args=()
-
-  if [ -n "$env_vars" ]; then
-    IFS=' ' read -r -a envvars <<< "${env_vars}"
+  if [ -n "$hf_env_vars" ]; then
+    IFS=' ' read -r -a envvars <<< "${hf_env_vars}"
     export "${envvars[@]}"
   fi
 
-  if [ -n "$dir" ]; then
-    cd /tmp/build/put/$dir
+  apply_args=()
+
+  if [ -n "$hf_directory" ]; then
+    cd /tmp/build/put/$hf_directory
   fi
 
-  if [ -n "$helmfile" ]; then
-    apply_args+=("--file" "$helmfile")
+  if [ ! -d "helmfile.d" ]; then
+    if [ -n "$hf_file" ]; then
+      apply_args+=("--file" "$hf_file")
+    fi
   fi
-  helmfile "${apply_args[@]}" repos | tee $logfile
 
-  if [ -n "$environment" ]; then
-    apply_args+=("--environment" "$environment")
+  if [ -n "$hf_environment" ]; then
+    apply_args+=("--environment" "$hf_environment")
   fi
 
   if [ -n "$namespace" ]; then
     apply_args+=("--namespace" "$namespace")
   fi
 
-  if [ -n "$state_values_file" ]; then
-    apply_args+=("--state-values-file" "$state_values_file")
+  if [ -n "$hf_state_values_file" ]; then
+    apply_args+=("--state-values-file" "$hf_state_values_file")
   fi
 
-  if [ -n "$state_values_set" ]; then
-    apply_args+=("--state-values-set" "$state_values_set")
+  if [ -n "$hf_state_values_set" ]; then
+    apply_args+=("--state-values-set" "$hf_state_values_set")
   fi
 
-  if [ -n "$selector" ]; then
-    apply_args+=("--selector" "$selector")
+  if [ -n "$hf_selector" ]; then
+    apply_args+=("--selector" "$hf_selector")
   fi
 
-  apply_args+=("apply" "--suppress-secrets")
+  apply_args+=("$hf_action")
 
   if [ -n "$values" ]; then
     apply_args+=("--values" "$values")
   fi
 
+  apply_args+=("--suppress-secrets")
+
+  echo "Arguments: ${apply_args[@]}"
+
   helmfile "${apply_args[@]}" | tee $logfile
 }
-
 
 if [ "$delete" = true ]; then
   helm_delete
@@ -362,8 +374,8 @@ elif [ "$test" = true ]; then
   helm_test
   result="$(jq -n "{version:{release:\"$release\", tested: \"true\"}, metadata: [{name: \"release\", value: \"$release\"}]}")"
   echo "$result" | jq -s add  >&3
-elif [ -n "$helmfile" ]; then
-  helmfile_apply
+elif [ "$hf_enable" = "true" ]; then
+  helmfile_action
 
   if [ "$release" = "" ]; then
     release=$(${helm_bin} ls -qrd --tiller-namespace $tiller_namespace --max 20 | head -1)
