@@ -95,6 +95,19 @@ on the cluster.
 * `wait`: *Optional.* Allows deploy task to sleep for X seconds before continuing to next task. Allows pods to restart and become stable, useful where dependency between pods exists. (Default: 0)
 * `kubeconfig_path`: *Optional.* File containing a kubeconfig. Overrides source configuration for cluster, token, and admin config.
 
+*For Helmfile*
+
+Params are under the `helmfile` key.
+* `enable`: *Optional.* Enable helmfile support. (Default: false)
+* `action`: *Optional.* Helmfile command. (Default: apply)
+* `file`: *Optional.* Helmfile file. (Default: helmfile.yaml)
+* `directory`: *Optional.* The directory name where the helmfile is located. For `helmfile.d` support this is the parent directory. (Default: .)
+* `environment`: *Optional.* Helmfile environment name.
+* `state_values_file`: *Optional.* Helmfile state value file option.
+* `state_values_set`: *Optional.* Helmfile state values set option.
+* `selector`: *Optional.* Helmfile selector option.
+* `env_vars`: *Optional.* Environment variables to be set before executing helmfile command.
+
 ## Example
 
 ### Out
@@ -136,4 +149,17 @@ jobs:
       - key: image.tag
         path: version/image_tag # Read value from version/number
         type: string            # Make sure it's interpreted as a string by Helm (not a number)
+```
+
+Add to job to use helmfile:
+
+```yaml
+jobs:
+  # ...
+  plan:
+  - put: myapp-helm
+    params:
+      helmfile:
+        enable: true
+        directory: branch # Parent directory containing the helmfile.d
 ```
