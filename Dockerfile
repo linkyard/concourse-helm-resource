@@ -12,7 +12,8 @@ RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-
 
 RUN mkdir -p "$(helm home)/plugins"
 RUN helm plugin install https://github.com/databus23/helm-diff && \
-  helm plugin install https://github.com/rimusz/helm-tiller
+  helm plugin install https://github.com/rimusz/helm-tiller && \
+  helm plugin install https://github.com/aslafy-z/helm-git
 
 ADD assets /opt/resource
 RUN chmod +x /opt/resource/*
