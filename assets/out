@@ -101,7 +101,7 @@ set_overridden_values() {
 
 # Find the current revision of a helm release
 current_deployed() {
-  helm history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
+  helm history $tls_flag --tiller-namespace $tiller_namespace --max 1 $release | grep "DEPLOYED"
 }
 
 helm_upgrade() {
