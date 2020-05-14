@@ -1,4 +1,4 @@
-FROM linkyard/alpine-helm:2.16.6
+FROM linkyard/alpine-helm:2.16.7
 LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
 RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl
