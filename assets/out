@@ -127,7 +127,7 @@ set_overridden_values() {
 # Find the current revision of a helm release
 current_deployed() {
   local release="$1"
-  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 20 $release | grep "DEPLOYED"
+  $helm_bin history $tls_flag --tiller-namespace $tiller_namespace --max 1 $release | grep "DEPLOYED"
 }
 
 helm_upgrade() {
@@ -306,7 +306,7 @@ else
   helm_upgrade
 
   if [ "$release" = "" ]; then
-    release=$(helm ls -qrd --tiller-namespace $tiller_namespace --max 20 | head -1)
+    release=$(helm ls -qrd --tiller-namespace $tiller_namespace --max 1 | head -1)
   fi
   deployed=$(current_deployed "$release")
   revision=$(echo $deployed | awk '{ print $1 }')
