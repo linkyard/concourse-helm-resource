@@ -24,10 +24,15 @@ setup_kubernetes() {
       admin_cert=$(jq -r '.source.admin_cert // ""' < $payload)
       token=$(jq -r '.source.token // ""' < $payload)
       token_path=$(jq -r '.params.token_path // ""' < $payload)
-
-      ca_path="/root/.kube/ca.pem"
-      echo "$cluster_ca" | base64 -d > $ca_path
-      kubectl config set-cluster default --server=$cluster_url --certificate-authority=$ca_path
+      insecure_skip_tls_verify=$(jq -r '.source.insecure_skip_tls_verify // "false"' < $payload)
+      
+      if [ "$insecure_skip_tls_verify" = true ]; then
+        kubectl config set-cluster default --server=$cluster_url --insecure-skip-tls-verify
+      else
+        ca_path="/root/.kube/ca.pem"
+        echo "$cluster_ca" | base64 -d > $ca_path
+        kubectl config set-cluster default --server=$cluster_url --certificate-authority=$ca_path
+      fi
 
       if [ -f "$source/$token_path" ]; then
         kubectl config set-credentials admin --token=$(cat $source/$token_path)
