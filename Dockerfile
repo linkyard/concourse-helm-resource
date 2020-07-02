@@ -1,8 +1,10 @@
 FROM linkyard/alpine-helm:2.16.7
 LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
-RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl
+RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl python
+RUN curl -sSL https://sdk.cloud.google.com | bash
 
+ENV PATH $PATH:/root/google-cloud-sdk/bin
 ENV KUBERNETES_VERSION 1.16.9
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl; \
   chmod +x /usr/local/bin/kubectl
