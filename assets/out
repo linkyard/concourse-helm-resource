@@ -36,6 +36,7 @@ test=$(jq -r '.params.test // "false"' < $payload)
 purge=$(jq -r '.params.purge // "false"' < $payload)
 devel=$(jq -r '.params.devel // "false"' < $payload)
 atomic=$(jq -r '.params.atomic // "false"' < $payload)
+cleanup_on_fail=$(jq -r '.params.cleanup_on_fail // "false"' < $payload)
 recreate_pods=$(jq -r '.params.recreate_pods // "false"' < $payload)
 force=$(jq -r '.params.force // "false"' < $payload)
 show_diff=$(jq -r '.params.show_diff // "false"' < $payload)
@@ -137,6 +138,11 @@ helm_upgrade() {
   else
     upgrade_args=("upgrade" "$release" $chart_full "--tiller-namespace=$tiller_namespace")
     non_diff_args+=("--install")
+
+    # --cleanup-on-fail is only present on the upgrade command (not install)
+    if [ "$cleanup_on_fail" = true ]; then
+      non_diff_args+=("--cleanup-on-fail")
+    fi
   fi
 
   if [ -n "$values" ]; then
