@@ -24,6 +24,6 @@ RUN mkdir -p "$(helm home)/plugins"
 RUN curl https://www.google.com
 RUN git clone https://www.github.com/databus23/helm-diff
 RUN helm plugin install --debug https://github.com/databus23/helm-diff --version "2.11.0+5" && \
--  helm plugin install https://github.com/rimusz/helm-tiller
+  helm plugin install https://github.com/rimusz/helm-tiller
 
 ENTRYPOINT [ "/bin/bash" ]
