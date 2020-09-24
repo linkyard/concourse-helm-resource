@@ -14,15 +14,13 @@ RUN apk --update upgrade musl
 RUN apk add --update --upgrade --no-cache musl python3 py3-pip curl
 RUN python3 -m pip install --no-cache-dir --upgrade --progress-bar off awscli
 
-RUN apk add --update --no-cache -t deps git curl tar gzip ca-certificates
+RUN apk add --update --no-cache -t deps tar gzip ca-certificates
 
 ADD assets /opt/resource
 RUN chmod +x /opt/resource/*
 
 
 RUN mkdir -p "$(helm home)/plugins"
-RUN curl https://www.google.com
-RUN git clone https://www.github.com/databus23/helm-diff
 RUN helm plugin install --debug https://github.com/databus23/helm-diff --version "2.11.0+5" && \
   helm plugin install https://github.com/rimusz/helm-tiller
 
