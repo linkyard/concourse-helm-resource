@@ -21,7 +21,7 @@ RUN chmod +x /opt/resource/*
 
 
 RUN mkdir -p "$(helm home)/plugins"
-RUN helm plugin install --debug https://github.com/databus23/helm-diff --version "2.11.0+5" && \
+RUN helm plugin install https://github.com/databus23/helm-diff --version "2.11.0+5" && \
   helm plugin install https://github.com/rimusz/helm-tiller
 
 ENTRYPOINT [ "/bin/bash" ]
