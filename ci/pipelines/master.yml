@@ -77,15 +77,6 @@ jobs:
           $TEXT_FILE_CONTENT
         silent: true
       attempts: 3
-- name: notify-complete
-  serial: true
-  plan:
-  - in_parallel:
-    - get: repo
-      passed:
-      - build-concourse-helm-resource
-      trigger: true
-    - get: concourse
   on_success:
     do:
     - task: slack-message

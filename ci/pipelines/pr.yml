@@ -92,24 +92,13 @@ jobs:
         context: build-concourse-helm-resource
         status: success
       attempts: 3
-- name: notify-complete
-  serial: true
-  plan:
-  - in_parallel:
-    - get: pull-request
-      passed:
-      - build-concourse-helm-resource
-      trigger: true
-    - get: concourse
-  - task: slack-message
-    file: concourse/tasks/common/slack_pr_message.yml
-  - put: slack-alert
-    params:
-      username: 'concourse'
-      icon_url: https://concourse-ci.org/images/trademarks/concourse-black.png
-      text_file: slack-message/slack-info
-      text: |
-        :thumbsup: *<https://concourse.odeko.com/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}|${BUILD_PIPELINE_NAME}/${BUILD_JOB_NAME}/${BUILD_NAME}> succeeded*
-        $TEXT_FILE_CONTENT
-      silent: true
-    attempts: 3
+    - put: slack-alert
+      params:
+        username: 'concourse'
+        icon_url: https://concourse-ci.org/images/trademarks/concourse-black.png
+        text_file: slack-message/slack-info
+        text: |
+          :thumbsup: *<https://concourse.odeko.com/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}|${BUILD_PIPELINE_NAME}/${BUILD_JOB_NAME}/${BUILD_NAME}> succeeded*
+          $TEXT_FILE_CONTENT
+        silent: true
+      attempts: 3
