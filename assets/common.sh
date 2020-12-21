@@ -117,7 +117,9 @@ setup_helm() {
   tillerless=$(jq -r '.source.tillerless // "false"' < $payload)
   tls_enabled=$(jq -r '.source.tls_enabled // "false"' < $payload)
   history_max=$(jq -r '.source.helm_history_max // "0"' < $1)
-  stable_repo=$(jq -r '.source.stable_repo // ""' < $payload)
+  # set default helm charts repository as the old default was deprecated
+  # see https://helm.sh/blog/charts-repo-deprecation/
+  stable_repo=$(jq -r '.source.stable_repo // "https://charts.helm.sh/stable"' < $payload)
 
   if [ "$tillerless" = true ]; then
     echo "Using tillerless helm"
