@@ -1,0 +1,103 @@
+resource_types:
+- name: slack-notification
+  type: registry-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+    tag: latest
+
+resources:
+- name: repo
+  webhook_token: ((github-webhook-token))
+  type: git
+  check_every: 15m
+  source:
+    branch: master
+    password: ((git-password))
+    uri: https://github.com/OdekoTeam/concourse-helm-resource.git
+    username: ((git-user))
+- name: concourse
+  type: git
+  check_every: 1h
+  source:
+    branch: master
+    password: ((git-password))
+    uri: https://github.com/OdekoTeam/concourse.git
+    username: ((git-user))
+- name: slack-alert
+  type: slack-notification
+  source:
+    url: ((slack-build-webhook-token))
+- name: concourse-helm-resource
+  type: registry-image
+  source:
+    repository: docker.odeko.com/linkyard/concourse-helm-resource
+
+jobs:
+- name: build-concourse-helm-resource
+  serial: true
+  plan:
+  - in_parallel:
+    - get: repo
+      trigger: true
+    - get: concourse
+  - task: build-concourse-helm-resource
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: vito/oci-build-task
+      params:
+        DOCKERFILE: repo/Dockerfile
+        CONTEXT: repo
+      inputs:
+      - name: repo
+      outputs:
+      - name: image
+      caches:
+      - path: cache
+      run:
+        path: build
+  - put: concourse-helm-resource
+    params:
+      image: image/image.tar
+  on_failure:
+    do:
+    - task: slack-message
+      file: concourse/tasks/common/slack_master_message.yml
+    - put: slack-alert
+      params:
+        username: 'concourse'
+        icon_url: https://concourse-ci.org/images/trademarks/concourse-black.png
+        text_file: slack-message/slack-info
+        text: |
+          :red_circle: *${BUILD_PIPELINE_NAME} job ${BUILD_JOB_NAME}/${BUILD_NAME} failed*
+          See <https://concourse.odeko.com/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}|concourse> for more information.
+          $TEXT_FILE_CONTENT
+        silent: true
+      attempts: 3
+- name: notify-complete
+  serial: true
+  plan:
+  - in_parallel:
+    - get: repo
+      passed:
+      - build-concourse-helm-resource
+      trigger: true
+    - get: concourse
+  on_success:
+    do:
+    - task: slack-message
+      file: concourse/tasks/common/slack_master_message.yml
+    - put: slack-alert
+      params:
+        username: 'concourse'
+        icon_url: https://concourse-ci.org/images/trademarks/concourse-black.png
+        text_file: slack-message/slack-info
+        text: |
+          :thumbsup: *${BUILD_PIPELINE_NAME} job ${BUILD_JOB_NAME}/${BUILD_NAME} succeeded*
+          See <https://concourse.odeko.com/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}|concourse> for more information.
+          $TEXT_FILE_CONTENT
+        silent: true
+      attempts: 3
