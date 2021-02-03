@@ -156,14 +156,14 @@ setup_helm() {
       helm_ca_cert_path="/root/.helm/ca.pem"
       echo "$tiller_key" > $tiller_key_path
       echo "$tiller_cert" > $tiller_cert_path
-      helm tiller run $tiller_namespace -- helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account $stable_repo  --upgrade $helm_init_wait_arg
+      helm tiller run $tiller_namespace $stable_repo -- helm init --tiller-tls --tiller-tls-cert $tiller_cert_path --tiller-tls-key $tiller_key_path --tiller-tls-verify --tls-ca-cert $tiller_key_path --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account $stable_repo  --upgrade $helm_init_wait_arg
     else
-      helm tiller run $tiller_namespace -- helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account $stable_repo  --upgrade $helm_init_wait_arg
+      helm tiller run $tiller_namespace $stable_repo -- helm init --tiller-namespace=$tiller_namespace --service-account=$tiller_service_account $stable_repo  --upgrade $helm_init_wait_arg
     fi
     wait_for_service_up tiller-deploy 10
   else
     export HELM_HOST=$(jq -r '.source.helm_host // ""' < $1)
-    helm tiller run $tiller_namespace -- helm init -c --tiller-namespace $tiller_namespace $stable_repo> /dev/null
+    helm tiller run $tiller_namespace $stable_repo -- helm init -c --tiller-namespace $tiller_namespace $stable_repo> /dev/null
   fi
 
   tls_enabled_arg=""
