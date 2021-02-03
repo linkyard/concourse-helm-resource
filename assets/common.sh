@@ -244,6 +244,7 @@ setup_resource() {
 
   echo "Initializing kubectl..."
   setup_kubernetes $1 $2
+  echo "kubectl initialize..."
   echo "Initializing helm..."
   setup_tls $1
   setup_helm $1 $2
