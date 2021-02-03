@@ -121,6 +121,7 @@ setup_helm() {
     helm_bin="helm"
   fi
 
+  echo "Stable Repo URL : ${stable_repo}"
   if [ -n "$stable_repo" ]; then
     echo "Stable Repo URL : ${stable_repo}"
     stable_repo="--stable-repo-url=${stable_repo}"
