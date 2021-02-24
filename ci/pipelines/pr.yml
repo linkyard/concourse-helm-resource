@@ -22,7 +22,7 @@ resources:
   check_every: 1h
   source:
     branch: master
-    password: ((git-password))
+    password: ((git-release-token))
     uri: https://github.com/OdekoTeam/concourse.git
     username: ((git-user))
 - name: slack-alert
