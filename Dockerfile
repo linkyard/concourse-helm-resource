@@ -1,7 +1,7 @@
 FROM linkyard/alpine-helm:2.17.0
 LABEL maintainer "mario.siegenthaler@linkyard.ch"
 
-RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl
+RUN apk add --update --upgrade --no-cache jq bash curl git gettext libintl tar
 
 ENV KUBERNETES_VERSION 1.19.6
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl; \
@@ -12,6 +12,6 @@ RUN chmod +x /opt/resource/*
 
 RUN mkdir -p "$(helm home)/plugins"
 RUN helm plugin install https://github.com/databus23/helm-diff
-RUN helm plugin install https://github.com/rimusz/helm-tiller
+RUN helm plugin install https://github.com/oohmedia/helm-tiller
 
 ENTRYPOINT [ "/bin/bash" ]
